@@ -1,0 +1,15 @@
+[server]
+enableStaticServing = true
+maxUploadSize = 5
+
+[client]
+showErrorDetails = "none"
+toolbarMode = "minimal"
+
+[theme]
+base = "dark"
+primaryColor = "#D4AF37"
+backgroundColor = "#121212"
+secondaryBackgroundColor = "#1B1B1B"
+textColor = "#F5EFE6"
+font = "sans serif"
