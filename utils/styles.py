@@ -19,7 +19,7 @@ GLOBAL_CSS = """
     height: 0 !important;
 }
 
-html, body, .stApp, [data-testid="stAppViewContainer"] {
+html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     background-color: var(--wf-bg) !important;
     color: var(--wf-cream) !important;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
@@ -32,22 +32,32 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {
     max-width: 1240px !important;
 }
 
-/* Website-wide Fade-In-Blur-In Reveal */
+/* Fade-In-Blur-In Reveal (transform clears at end so fixed/dialog positioning stays intact) */
 @keyframes wfBlurReveal {
     0% {
         opacity: 0;
         filter: blur(22px);
         transform: scale(1.015);
     }
-    100% {
+    99% {
         opacity: 1;
         filter: blur(0px);
         transform: scale(1);
     }
+    100% {
+        opacity: 1;
+        filter: none;
+        transform: none;
+    }
 }
 
-[data-testid="stAppViewContainer"], .wf-blur-in {
-    animation: wfBlurReveal 1.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.wf-page-hidden {
+    opacity: 0 !important;
+    filter: blur(22px) !important;
+}
+
+.wf-blur-in {
+    animation: wfBlurReveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Upper-Left Brand & Larger Logo */
@@ -84,7 +94,7 @@ div.stButton > button {
     padding: 0.52rem 1.25rem !important;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
     font-weight: 600 !important;
-    transition: all 0.25s ease !important;
+    transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
 div.stButton > button:hover {
@@ -115,7 +125,9 @@ div.stFormSubmitButton > button:hover,
     box-shadow: 0 8px 26px rgba(212, 175, 55, 0.42) !important;
 }
 
-/* Top-Right Bag Icon + Overlapping Item Count Badge */
+/* ============================================================================
+   Top-Right Bag Icon + Overlapping Item Count Badge
+   ============================================================================ */
 .st-key-bag_popover {
     display: flex !important;
     justify-content: flex-end !important;
@@ -134,13 +146,13 @@ div.stFormSubmitButton > button:hover,
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: all 0.25s ease !important;
+    transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
 .st-key-bag_popover button:hover {
     border-color: #F0CA5A !important;
     box-shadow: 0 0 20px rgba(212, 175, 55, 0.28) !important;
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(1.03);
 }
 
 .st-key-bag_popover button::before {
@@ -179,13 +191,36 @@ div.stFormSubmitButton > button:hover,
     pointer-events: none !important;
 }
 
-/* Popover Body & Fix for '+' / '-' Buttons Visibility */
+/* ============================================================================
+   Buttery Pop-Out Animation for Basket Popover & '+'/'-' Fixes
+   ============================================================================ */
+@keyframes wfBagPopOut {
+    0% {
+        opacity: 0;
+        transform: scale(0.68) translate(16px, -18px);
+        filter: blur(8px);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.02) translate(0, 2px);
+        filter: blur(0px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translate(0, 0);
+        filter: blur(0px);
+    }
+}
+
 div[data-testid="stPopoverBody"] {
     min-width: 350px !important;
-    background: #181714 !important;
-    border: 1px solid rgba(212, 175, 55, 0.38) !important;
+    background: linear-gradient(160deg, #1E1C18, #141311) !important;
+    border: 1px solid rgba(212, 175, 55, 0.42) !important;
     border-radius: 18px !important;
     color: var(--wf-cream) !important;
+    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.78) !important;
+    transform-origin: top right !important;
+    animation: wfBagPopOut 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
 div[data-testid="stPopoverBody"] div.stButton > button {
@@ -206,6 +241,30 @@ div[data-testid="stPopoverBody"] .st-key-basket_order_btn button {
     min-height: 42px !important;
     border-radius: 999px !important;
     font-size: 0.98rem !important;
+}
+
+/* ============================================================================
+   Buttery Fade-In-Upwards Animation for Checkout / Confirmation Dialogs
+   ============================================================================ */
+@keyframes wfDialogFadeUp {
+    0% {
+        opacity: 0;
+        transform: translateY(42px) scale(0.97);
+        filter: blur(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+div[role="dialog"] {
+    background: linear-gradient(165deg, #1C1A16 0%, #12110F 100%) !important;
+    border: 1px solid rgba(212, 175, 55, 0.42) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.88) !important;
+    animation: wfDialogFadeUp 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
 /* Divider */
@@ -245,7 +304,7 @@ div[data-testid="stPopoverBody"] .st-key-basket_order_btn button {
     padding: 1.4rem;
     margin-bottom: 1rem;
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-    transition: transform 0.3s ease, border-color 0.3s ease;
+    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s ease;
 }
 
 .wf-menu-card:hover {
@@ -300,6 +359,7 @@ textarea, input[type="text"] {
     color: var(--wf-cream) !important;
     border: 1px solid rgba(212, 175, 55, 0.28) !important;
     border-radius: 12px !important;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease !important;
 }
 
 textarea:focus, input[type="text"]:focus {
