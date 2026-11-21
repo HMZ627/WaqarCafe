@@ -15,7 +15,6 @@ def _post_discord_webhook(
     if not webhook_url or not webhook_url.startswith("https://discord.com/api/webhooks/"):
         return False
 
-    # Hard block @everyone / @here / role mentions
     payload["allowed_mentions"] = {"parse": []}
 
     try:
@@ -52,12 +51,12 @@ def send_order_webhook(
     receipt_filename: str | None = None,
 ) -> bool:
     items_summary = "\n".join(
-        f"• **{item['name']}** × {item['qty']} — `PKR {item['price'] * item['qty']:,}/-`"
+        f"• **{item['name']}** x {item['qty']} — `PKR {item['price'] * item['qty']:,}/-`"
         for item in items
     )
 
     embed = {
-        "title": f"🍔 New Order Received — {order_id}",
+        "title": f"New Order Received — {order_id}",
         "color": 0xD4AF37,
         "fields": [
             {"name": "Order ID", "value": f"`{order_id}`", "inline": True},
@@ -68,7 +67,7 @@ def send_order_webhook(
             {"name": "Delivery Address", "value": address, "inline": False},
             {"name": "Order Items", "value": items_summary, "inline": False},
         ],
-        "footer": {"text": "Waqar Foodies • Secure Order Pipeline"},
+        "footer": {"text": "Waqar Foodies • Order Pipeline"},
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -84,13 +83,12 @@ def send_order_webhook(
 
 
 def send_review_webhook(stars: int, review_text: str, reviewer_name: str = "Guest") -> bool:
-    star_bar = "⭐" * stars + "☆" * (5 - stars)
     embed = {
-        "title": "✨ New Customer Review",
+        "title": "New Customer Review",
         "color": 0xE5B84B,
         "fields": [
             {"name": "Reviewer", "value": reviewer_name or "Guest", "inline": True},
-            {"name": "Rating", "value": f"{star_bar} ({stars}/5)", "inline": True},
+            {"name": "Rating", "value": f"{stars} / 5 Stars", "inline": True},
             {"name": "Review", "value": review_text, "inline": False},
         ],
         "footer": {"text": "Waqar Foodies • Reviews"},
@@ -104,7 +102,7 @@ def send_review_webhook(stars: int, review_text: str, reviewer_name: str = "Gues
 
 def send_bug_webhook(bug_text: str, reporter_name: str = "Anonymous") -> bool:
     embed = {
-        "title": "🐞 New Bug Report",
+        "title": "New Bug Report",
         "color": 0xC94A4A,
         "fields": [
             {"name": "Reporter", "value": reporter_name or "Anonymous", "inline": True},
