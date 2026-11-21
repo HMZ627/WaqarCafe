@@ -17,7 +17,7 @@ from utils.webhooks import (
 )
 
 # -----------------------------------------------------------------------------
-# Page Config & Initialization (Zero Emojis)
+# Page Config & Initialization
 # -----------------------------------------------------------------------------
 logo_page_icon = "static/Logo.png" if Path("static/Logo.png").exists() else None
 
@@ -47,6 +47,39 @@ MENU_ITEMS = {
     },
 }
 
+
+@st.cache_resource
+def get_live_reviews_store() -> list[dict]:
+    """Shared in-memory review store seeded with core testimonials; fresh user reviews appear live."""
+    return [
+        {
+            "name": "Ali",
+            "stars": 5,
+            "text": "The Tower Burger after midnight is unbeatable. That smoky charcoal sear and warm buttered brioche hit different every single time.",
+        },
+        {
+            "name": "Abdullah",
+            "stars": 5,
+            "text": "Ordered the Chicken Paratha Roll with friends — flaky, juicy, and packed with spice. Easily the best late-night cafe vibe around.",
+        },
+        {
+            "name": "Umer",
+            "stars": 5,
+            "text": "Dark charcoal aesthetic, super smooth service, and the signature sauce on the burger is pure perfection. My regular weekend stop.",
+        },
+        {
+            "name": "Ahmed",
+            "stars": 5,
+            "text": "Fast order confirmation and piping hot delivery. Waqar Foodies never compromises on ingredient freshness.",
+        },
+        {
+            "name": "Junaid",
+            "stars": 5,
+            "text": "From the first bite to the last crumb, you can taste the craft. Top marks for both the Tower Burger and Paratha Roll.",
+        },
+    ]
+
+
 if "page" not in st.session_state:
     st.session_state.page = "Home"
 if "cart" not in st.session_state:
@@ -57,6 +90,8 @@ if "open_checkout_modal" not in st.session_state:
     st.session_state.open_checkout_modal = False
 if "confirmed_order_id" not in st.session_state:
     st.session_state.confirmed_order_id = None
+if "review_submitted_notice" not in st.session_state:
+    st.session_state.review_submitted_notice = False
 
 
 # -----------------------------------------------------------------------------
@@ -92,6 +127,25 @@ def get_cart_summary() -> tuple[list[dict], int, int]:
 # -----------------------------------------------------------------------------
 @st.dialog("Complete Your Order", width="large")
 def show_checkout_dialog():
+    # Ensure any open basket popover closes cleanly when checkout dialog appears
+    st.html(
+        """
+        <script>
+        (function() {
+            const popBodies = document.querySelectorAll('[data-testid="stPopoverBody"]');
+            if (popBodies.length > 0) {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                const bagBtn = document.querySelector('.st-key-bag_popover button');
+                if (bagBtn && bagBtn.getAttribute('aria-expanded') === 'true') {
+                    bagBtn.click();
+                }
+            }
+        })();
+        </script>
+        """,
+        unsafe_allow_javascript=True,
+    )
+
     cart_items, _, grand_total = get_cart_summary()
     if not cart_items:
         st.warning("Your order bag is empty. Please add an item from the Menu first.")
@@ -285,7 +339,7 @@ elif st.session_state.open_checkout_modal:
 
 
 # -----------------------------------------------------------------------------
-# Top Toolbar (Larger Logo Left + Menu / Review / Report a bug + Bag Icon)
+# Top Toolbar
 # -----------------------------------------------------------------------------
 def render_navbar():
     cart_items, total_qty, grand_total = get_cart_summary()
@@ -383,14 +437,17 @@ def render_navbar():
 def render_review_section(standalone: bool = False):
     st.html(
         """
-        <div class="wf-blur-in" style="margin-top: 2.5rem;">
-            <h2 class="wf-section-title">Leave a <span>Review</span></h2>
-            <p class="wf-section-sub">Loved the crunch, smoke, and warmth? Tell us how your experience tasted.</p>
+        <div id="wf-review-anchor" style="margin-top: 3rem; padding-top: 1.5rem;">
+            <h2 class="wf-section-title">Submit a <span>Review</span></h2>
+            <p class="wf-section-sub">Loved the crunch, smoke, and warmth? Your review goes live on our wall.</p>
         </div>
         """
     )
     _, center_col, _ = st.columns([1, 2.2, 1])
     with center_col:
+        if st.session_state.pop("review_submitted_notice", False):
+            st.success("Thank you. Your review is now featured in Voices After Darkness.")
+
         with st.container(border=True):
             reviewer_name = st.text_input(
                 "Your Name (Optional)",
@@ -425,8 +482,18 @@ def render_review_section(standalone: bool = False):
                 stars = rating_idx + 1
                 with st.spinner("Submitting review..."):
                     ok = send_review_webhook(stars=stars, review_text=clean_rev, reviewer_name=clean_name)
+
                 if ok:
-                    st.success("Thank you. Your review has been sent to Waqar Foodies.")
+                    # Add fresh review straight into the live Testimonials Carousel
+                    reviews_store = get_live_reviews_store()
+                    reviews_store.insert(0, {
+                        "name": clean_name,
+                        "stars": stars,
+                        "text": clean_rev,
+                    })
+                    del reviews_store[20:]
+                    st.session_state.review_submitted_notice = True
+                    st.rerun()
                 else:
                     st.error("Could not send review right now. Please try again shortly.")
 
@@ -434,7 +501,7 @@ def render_review_section(standalone: bool = False):
 def render_bug_page():
     st.html(
         """
-        <div class="wf-blur-in" style="margin-top: 1.5rem;">
+        <div style="margin-top: 1.5rem;">
             <h2 class="wf-section-title">Report a <span>Bug</span></h2>
             <p class="wf-section-sub">Spotted an issue on our website? Let us know and we will fix it right away.</p>
         </div>
@@ -528,45 +595,65 @@ def render_menu_page():
 # Home Page
 # -----------------------------------------------------------------------------
 def render_home_page():
-    # 1. Intro Fade-In / Fade-Out Overlay -> Triggers Main Page Fade-In-Blur-In
+    # 1. Ambient-Lit Intro Overlay -> Fades Out -> 1s Delay -> Page Fade-In-Blur-In
     st.html(
         """
         <style>
         #wf-intro-overlay {
             position: fixed;
             inset: 0;
+            width: 100vw;
+            height: 100vh;
             z-index: 999999;
-            background: #121212;
+            background: #0B0A09;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
             opacity: 1;
-            transition: opacity 1s ease;
+            transition: opacity 0.95s ease;
         }
         #wf-intro-overlay.wf-removed {
             display: none !important;
             pointer-events: none !important;
         }
-        #wf-intro-video {
-            width: 100%;
-            height: 100%;
+        #wf-intro-ambient {
+            position: absolute;
+            inset: -12%;
+            width: 124%;
+            height: 124%;
             object-fit: cover;
+            filter: blur(55px) saturate(1.6) brightness(0.72);
             opacity: 0;
             transition: opacity 1.1s ease;
+            pointer-events: none;
+        }
+        #wf-intro-video {
+            position: relative;
+            z-index: 2;
+            max-width: 100vw;
+            max-height: 100vh;
+            width: auto;
+            height: 100vh;
+            object-fit: contain;
+            opacity: 0;
+            transition: opacity 1.0s ease;
+            -webkit-mask-image: radial-gradient(ellipse 88% 92% at 50% 50%, #000 72%, transparent 100%);
+            mask-image: radial-gradient(ellipse 88% 92% at 50% 50%, #000 72%, transparent 100%);
         }
         #wf-intro-skip {
             position: absolute;
             bottom: 32px;
             right: 32px;
+            z-index: 5;
             background: rgba(18, 18, 18, 0.72);
             color: #F5EFE6;
-            border: 1px solid rgba(212, 175, 55, 0.45);
+            border: 1px solid rgba(212, 175, 55, 0.48);
             border-radius: 999px;
             padding: 8px 20px;
             font-weight: 600;
             font-size: 0.85rem;
             cursor: pointer;
-            z-index: 2;
         }
         #wf-intro-skip:hover {
             border-color: #D4AF37;
@@ -575,6 +662,9 @@ def render_home_page():
         </style>
 
         <div id="wf-intro-overlay">
+            <video id="wf-intro-ambient" autoplay muted playsinline preload="auto">
+                <source src="./app/static/intro.mp4" type="video/mp4" />
+            </video>
             <video id="wf-intro-video" autoplay muted playsinline preload="auto">
                 <source src="./app/static/intro.mp4" type="video/mp4" />
             </video>
@@ -583,161 +673,219 @@ def render_home_page():
 
         <script>
         (function() {
-            const overlay = document.getElementById('wf-intro-overlay');
-            const vid = document.getElementById('wf-intro-video');
-            const skipBtn = document.getElementById('wf-intro-skip');
-            const appRoot = document.querySelector('[data-testid="stAppViewContainer"]');
+            function initIntro() {
+                const overlay = document.getElementById('wf-intro-overlay');
+                const vid = document.getElementById('wf-intro-video');
+                const amb = document.getElementById('wf-intro-ambient');
+                const skipBtn = document.getElementById('wf-intro-skip');
+                const appRoot = document.querySelector('[data-testid="stAppViewContainer"]');
 
-            if (window.__wfIntroDone) {
-                if (overlay) overlay.classList.add('wf-removed');
-                return;
-            }
+                if (!overlay || !vid) {
+                    requestAnimationFrame(initIntro);
+                    return;
+                }
 
-            let finished = false;
+                // Append overlay directly to body so parent transforms never clip full-screen fixed positioning
+                if (overlay.parentElement !== document.body) {
+                    document.body.appendChild(overlay);
+                }
 
-            function finishIntro() {
-                if (finished) return;
-                finished = true;
-                window.__wfIntroDone = true;
-                overlay.style.opacity = '0';
+                if (window.__wfIntroDone) {
+                    overlay.classList.add('wf-removed');
+                    if (appRoot) {
+                        appRoot.classList.remove('wf-page-hidden');
+                        appRoot.classList.add('wf-blur-in');
+                    }
+                    return;
+                }
 
+                // Hide main app elements until 1s after intro fades out
                 if (appRoot) {
                     appRoot.classList.remove('wf-blur-in');
-                    void appRoot.offsetWidth;
-                    appRoot.classList.add('wf-blur-in');
+                    appRoot.classList.add('wf-page-hidden');
                 }
+
+                let finished = false;
+
+                function finishIntro() {
+                    if (finished) return;
+                    finished = true;
+                    window.__wfIntroDone = true;
+
+                    // Fade out intro overlay
+                    overlay.style.opacity = '0';
+
+                    setTimeout(() => {
+                        overlay.classList.add('wf-removed');
+                    }, 980);
+
+                    // 1 second after intro finishes fading out, reveal all website elements with fade-in-blur-in
+                    setTimeout(() => {
+                        if (appRoot) {
+                            appRoot.classList.remove('wf-page-hidden');
+                            void appRoot.offsetWidth;
+                            appRoot.classList.add('wf-blur-in');
+                        }
+                    }, 1950);
+                }
+
+                function startPlayback() {
+                    vid.muted = true;
+                    if (amb) amb.muted = true;
+                    vid.style.opacity = '1';
+                    if (amb) amb.style.opacity = '0.9';
+
+                    vid.play().catch(() => {});
+                    if (amb) {
+                        amb.currentTime = vid.currentTime;
+                        amb.play().catch(() => {});
+                    }
+                }
+
+                vid.addEventListener('loadeddata', startPlayback);
+                vid.addEventListener('canplay', startPlayback);
+
+                vid.addEventListener('timeupdate', () => {
+                    if (amb && Math.abs(amb.currentTime - vid.currentTime) > 0.15) {
+                        amb.currentTime = vid.currentTime;
+                    }
+                    if (vid.duration && vid.duration - vid.currentTime <= 0.85) {
+                        finishIntro();
+                    }
+                });
+
+                vid.addEventListener('ended', finishIntro);
+                vid.addEventListener('error', finishIntro);
+
+                const sourceEl = vid.querySelector('source');
+                if (sourceEl) sourceEl.addEventListener('error', finishIntro);
+
+                skipBtn.addEventListener('click', finishIntro);
+
+                vid.load();
+                if (amb) amb.load();
 
                 setTimeout(() => {
-                    overlay.classList.add('wf-removed');
-                }, 1050);
+                    if (!finished && vid.readyState === 0) {
+                        finishIntro();
+                    } else if (!finished && vid.paused) {
+                        startPlayback();
+                    }
+                }, 4000);
             }
 
-            function startPlayback() {
-                vid.muted = true;
-                vid.style.opacity = '1';
-                const playPromise = vid.play();
-                if (playPromise && typeof playPromise.catch === 'function') {
-                    playPromise.catch(() => {
-                        setTimeout(() => {
-                            if (vid.paused && !finished) finishIntro();
-                        }, 1200);
-                    });
-                }
-            }
-
-            vid.addEventListener('loadeddata', startPlayback);
-            vid.addEventListener('canplay', startPlayback);
-
-            vid.addEventListener('timeupdate', () => {
-                if (vid.duration && vid.duration - vid.currentTime <= 0.85) {
-                    finishIntro();
-                }
-            });
-
-            vid.addEventListener('ended', finishIntro);
-            vid.addEventListener('error', finishIntro);
-
-            const sourceEl = vid.querySelector('source');
-            if (sourceEl) {
-                sourceEl.addEventListener('error', finishIntro);
-            }
-
-            skipBtn.addEventListener('click', finishIntro);
-
-            vid.load();
-            setTimeout(() => {
-                if (!finished && vid.readyState === 0) {
-                    finishIntro();
-                } else if (!finished && vid.paused) {
-                    startPlayback();
-                }
-            }, 4500);
+            requestAnimationFrame(initIntro);
         })();
         </script>
         """,
         unsafe_allow_javascript=True,
     )
 
-    # 2. Hero Header
+    # 2. Quote-Style Hero Header
     st.html(
         """
         <style>
         .wf-hero {
             text-align: center;
             padding: 2.2rem 1rem 3.2rem 1rem;
-            min-height: 52vh;
+            min-height: 54vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
         }
-        .wf-hero-kicker {
-            display: inline-block;
-            color: #D4AF37;
-            border: 1px solid rgba(212, 175, 55, 0.35);
-            background: rgba(212, 175, 55, 0.08);
-            border-radius: 999px;
-            padding: 0.32rem 1.15rem;
-            font-size: 0.8rem;
-            letter-spacing: 2.2px;
-            text-transform: uppercase;
-            margin-bottom: 1.3rem;
+        .wf-quote-card {
+            position: relative;
+            max-width: 920px;
+            padding: 2.6rem 3rem 2.2rem 3rem;
+            border-top: 1px solid rgba(212, 175, 55, 0.35);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.35);
+            background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.06), transparent 72%);
+        }
+        .wf-quote-mark-open,
+        .wf-quote-mark-close {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(3.5rem, 6vw, 5.2rem);
+            color: rgba(212, 175, 55, 0.55);
+            line-height: 0.5;
+            user-select: none;
+        }
+        .wf-quote-mark-open {
+            margin-bottom: 0.7rem;
+            display: block;
+            text-align: left;
+        }
+        .wf-quote-mark-close {
+            margin-top: 0.7rem;
+            display: block;
+            text-align: right;
         }
         .wf-hero-heading {
             font-family: 'Playfair Display', serif;
             color: #F5EFE6;
-            line-height: 1.18;
+            line-height: 1.2;
             margin: 0 auto;
-            max-width: 960px;
         }
         .wf-w-flavour {
             font-family: 'Lobster', cursive;
-            font-size: clamp(3.4rem, 7vw, 5.8rem);
+            font-size: clamp(3.2rem, 6.6vw, 5.5rem);
             color: #D4AF37;
             text-shadow: 0 4px 26px rgba(212, 175, 55, 0.35);
         }
         .wf-w-small {
-            font-size: clamp(1.35rem, 2.6vw, 2.1rem);
+            font-size: clamp(1.3rem, 2.5vw, 2rem);
             font-weight: 400;
             color: #E6DAC8;
             font-style: italic;
         }
         .wf-w-alive {
-            font-size: clamp(2.2rem, 4.2vw, 3.4rem);
+            font-size: clamp(2.1rem, 4vw, 3.2rem);
             font-weight: 800;
             color: #F5EFE6;
             letter-spacing: 1px;
         }
         .wf-w-darkness {
-            font-size: clamp(3.2rem, 6.5vw, 5.4rem);
+            font-size: clamp(3rem, 6vw, 5.1rem);
             font-weight: 900;
             background: linear-gradient(180deg, #FFF5DC 0%, #D4AF37 55%, #8C6A15 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0 6px 24px rgba(212, 175, 55, 0.25));
         }
+        .wf-quote-attr {
+            margin-top: 1.1rem;
+            font-size: 0.82rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #D4AF37;
+            font-weight: 600;
+        }
         .wf-hero-scroll-cue {
-            margin-top: 2.2rem;
-            font-size: 0.78rem;
+            margin-top: 2rem;
+            font-size: 0.76rem;
             letter-spacing: 2.4px;
             text-transform: uppercase;
             color: rgba(245, 239, 230, 0.45);
         }
         </style>
-        <div class="wf-hero wf-blur-in">
-            <div class="wf-hero-kicker">Late-Night Artisan Cafe</div>
-            <h1 class="wf-hero-heading">
-                <span class="wf-w-flavour">Flavour</span><span class="wf-w-small">, that comes</span>
-                <span class="wf-w-alive"> Alive </span>
-                <span class="wf-w-small">After </span>
-                <span class="wf-w-darkness">Darkness</span>
-            </h1>
-            <div class="wf-hero-scroll-cue">Scroll Down to Experience</div>
+        <div id="wf-hero-anchor" class="wf-hero">
+            <blockquote class="wf-quote-card">
+                <span class="wf-quote-mark-open">“</span>
+                <h1 class="wf-hero-heading">
+                    <span class="wf-w-flavour">Flavour</span><span class="wf-w-small">, that comes</span>
+                    <span class="wf-w-alive"> Alive </span>
+                    <span class="wf-w-small">After </span>
+                    <span class="wf-w-darkness">Darkness</span>
+                </h1>
+                <span class="wf-quote-mark-close">”</span>
+                <div class="wf-quote-attr">— Waqar Foodies</div>
+            </blockquote>
+            <div class="wf-hero-scroll-cue">Scroll Down</div>
         </div>
         """
     )
 
-    # 3. Full-Screen Seamless Scroll-Controlled Showcase
+    # 3. Full-Screen Seamless Scroll-Controlled Showcase (Auto-snap Chain)
     st.html(
         """
         <style>
@@ -752,10 +900,9 @@ def render_home_page():
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at 50% 48%, #4A3514 0%, #14120D 68%, #0E0D0B 100%);
+            background: radial-gradient(circle at 50% 48%, #4F3814 0%, #17130D 65%, #0D0C0A 100%);
             transition: background 1.1s cubic-bezier(0.22, 1, 0.36, 1);
         }
-
         .wf-stage-visual-wrap {
             position: absolute;
             inset: 0;
@@ -765,7 +912,6 @@ def render_home_page():
             pointer-events: none;
             z-index: 1;
         }
-
         #wf-burger-canvas-video {
             height: 100vh;
             width: auto;
@@ -775,7 +921,6 @@ def render_home_page():
             mask-image: radial-gradient(ellipse 52% 68% at 50% 50%, #000 54%, rgba(0,0,0,0.45) 78%, transparent 100%);
             opacity: 0.96;
         }
-
         .wf-side-grid {
             position: relative;
             z-index: 4;
@@ -788,7 +933,6 @@ def render_home_page():
             gap: 2rem;
             pointer-events: none;
         }
-
         .wf-side-left {
             text-align: left;
             padding: 1.2rem 1.4rem;
@@ -796,7 +940,6 @@ def render_home_page():
             background: linear-gradient(90deg, rgba(14, 13, 11, 0.65), transparent);
             border-radius: 0 14px 14px 0;
         }
-
         .wf-side-right {
             text-align: right;
             padding: 1.2rem 1.4rem;
@@ -804,11 +947,9 @@ def render_home_page():
             background: linear-gradient(-90deg, rgba(14, 13, 11, 0.65), transparent);
             border-radius: 14px 0 0 14px;
         }
-
         .wf-side-spacer {
             min-height: 10px;
         }
-
         .wf-source-label {
             font-size: 0.76rem;
             letter-spacing: 2.2px;
@@ -817,7 +958,6 @@ def render_home_page():
             margin-bottom: 0.55rem;
             font-weight: 600;
         }
-
         .wf-side-subheader {
             font-family: 'Playfair Display', serif;
             font-size: clamp(1.75rem, 2.8vw, 2.7rem);
@@ -826,7 +966,6 @@ def render_home_page():
             margin: 0;
             text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
         }
-
         .wf-side-body {
             color: #EAE0D2;
             font-size: clamp(0.95rem, 1.25vw, 1.12rem);
@@ -834,7 +973,6 @@ def render_home_page():
             margin: 0;
             text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
         }
-
         @keyframes wfTextBlurIn {
             0% {
                 opacity: 0;
@@ -847,16 +985,13 @@ def render_home_page():
                 transform: translateY(0);
             }
         }
-
         .wf-side-animate {
-            animation: wfTextBlurIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            animation: wfTextBlurIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
-
         .wf-side-hidden {
             opacity: 0;
             filter: blur(14px);
         }
-
         .wf-stage-progress {
             position: absolute;
             right: 22px;
@@ -867,7 +1002,6 @@ def render_home_page():
             flex-direction: column;
             gap: 10px;
         }
-
         .wf-prog-dot {
             width: 8px;
             height: 8px;
@@ -877,13 +1011,11 @@ def render_home_page():
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
         .wf-prog-dot.active {
             height: 26px;
             border-radius: 999px;
             background: #D4AF37;
         }
-
         @media (max-width: 900px) {
             .wf-side-grid {
                 grid-template-columns: 1fr;
@@ -891,9 +1023,7 @@ def render_home_page():
                 align-content: space-between;
                 padding: 1.5rem 1.2rem;
             }
-            .wf-side-spacer {
-                display: none;
-            }
+            .wf-side-spacer { display: none; }
             .wf-side-left, .wf-side-right {
                 text-align: center;
                 border: none;
@@ -930,242 +1060,348 @@ def render_home_page():
 
         <script>
         (function() {
-            const stage = document.getElementById('wf-fullscreen-stage');
-            const video = document.getElementById('wf-burger-canvas-video');
-            const leftBox = document.getElementById('wf-left-text');
-            const rightBox = document.getElementById('wf-right-text');
-            const sourceEl = document.getElementById('wf-ing-source');
-            const subEl = document.getElementById('wf-ing-sub');
-            const bodyEl = document.getElementById('wf-ing-body');
-            const dotsWrap = document.getElementById('wf-stage-dots');
+            function initStageScroll() {
+                const stage = document.getElementById('wf-fullscreen-stage');
+                const video = document.getElementById('wf-burger-canvas-video');
+                const leftBox = document.getElementById('wf-left-text');
+                const rightBox = document.getElementById('wf-right-text');
+                const sourceEl = document.getElementById('wf-ing-source');
+                const subEl = document.getElementById('wf-ing-sub');
+                const bodyEl = document.getElementById('wf-ing-body');
+                const dotsWrap = document.getElementById('wf-stage-dots');
 
-            if (!stage || !video) return;
-
-            const sections = [
-                {
-                    pct: 0.00,
-                    source: "Sunlit Golden Wheat Fields",
-                    sub: "Toasted Sesame Brioche Bun",
-                    body: "Harvested from golden wheat fields and baked pillowy-soft with toasted sesame seeds, splitting open in warm millstone mist.",
-                    bg: "radial-gradient(circle at 50% 48%, #4F3814 0%, #17130D 65%, #0D0C0A 100%)"
-                },
-                {
-                    pct: 0.23,
-                    source: "Morning Dew Vegetable Farms",
-                    sub: "Crisp Lettuce, Vine Tomatoes & Red Onions",
-                    body: "Dew-fresh emerald lettuce, sun-ripened tomato slices, and sharp purple onion rings cascading straight from fertile garden soil.",
-                    bg: "radial-gradient(circle at 50% 48%, #153D23 0%, #0E1711 65%, #0B0E0C 100%)"
-                },
-                {
-                    pct: 0.43,
-                    source: "Lush Green Dairy Pastures",
-                    sub: "Creamy Double Cheddar & Crisp Pickles",
-                    body: "Wholesome pasture milk churned into two rich, velvety cheddar slices, layered generously over tangy dill pickles and greens.",
-                    bg: "radial-gradient(circle at 50% 48%, #2E3F19 0%, #15170F 65%, #0C0D0A 100%)"
-                },
-                {
-                    pct: 0.64,
-                    source: "Twilight Wood-Fired Grill",
-                    sub: "Double Charcoal-Seared Beef Patties",
-                    body: "Two thick, hand-pressed beef patties seared at dusk over roaring hardwood flames—locking in smoky char and sizzling juices.",
-                    bg: "radial-gradient(circle at 50% 48%, #521A0E 0%, #180E0D 65%, #0D0A0A 100%)"
-                },
-                {
-                    pct: 0.98,
-                    source: "Waqar Foodies — After Darkness",
-                    sub: "The Signature Double Tower Burger",
-                    body: "Crowned with crushed peppercorns, signature house burger sauce, and warm golden bokeh—crafted to come alive after darkness.",
-                    bg: "radial-gradient(circle at 50% 48%, #36240B 0%, #12100D 65%, #0A0A09 100%)"
-                }
-            ];
-
-            let currentStep = 0;
-            let isBusy = false;
-            let animFrame = null;
-
-            dotsWrap.innerHTML = "";
-            sections.forEach((_, idx) => {
-                const dot = document.createElement('div');
-                dot.className = 'wf-prog-dot' + (idx === 0 ? ' active' : '');
-                dot.addEventListener('click', () => {
-                    if (!isBusy) goToStep(idx);
-                });
-                dotsWrap.appendChild(dot);
-            });
-
-            function applySideText(stepIdx) {
-                const s = sections[stepIdx];
-                stage.style.background = s.bg;
-
-                Array.from(dotsWrap.children).forEach((d, i) => {
-                    d.classList.toggle('active', i === stepIdx);
-                });
-
-                leftBox.classList.remove('wf-side-animate');
-                rightBox.classList.remove('wf-side-animate');
-                leftBox.classList.add('wf-side-hidden');
-                rightBox.classList.add('wf-side-hidden');
-
-                setTimeout(() => {
-                    sourceEl.textContent = s.source;
-                    subEl.textContent = s.sub;
-                    bodyEl.textContent = s.body;
-                    leftBox.classList.remove('wf-side-hidden');
-                    rightBox.classList.remove('wf-side-hidden');
-                    void leftBox.offsetWidth;
-                    leftBox.classList.add('wf-side-animate');
-                    rightBox.classList.add('wf-side-animate');
-                }, 140);
-            }
-
-            function easeInOutCubic(t) {
-                return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-            }
-
-            function playSegmentSlowly(targetPct) {
-                if (animFrame) cancelAnimationFrame(animFrame);
-                const duration = video.duration;
-                if (!duration || isNaN(duration)) {
-                    isBusy = false;
+                if (!stage || !video) {
+                    requestAnimationFrame(initStageScroll);
                     return;
                 }
 
-                const startTime = video.currentTime;
-                const endTime = Math.min(duration - 0.05, Math.max(0, targetPct * duration));
-                const distance = endTime - startTime;
+                const sections = [
+                    {
+                        pct: 0.00,
+                        source: "Sunlit Golden Wheat Fields",
+                        sub: "Toasted Sesame Brioche Bun",
+                        body: "Harvested from golden wheat fields and baked pillowy-soft with toasted sesame seeds, splitting open in warm millstone mist.",
+                        bg: "radial-gradient(circle at 50% 48%, #4F3814 0%, #17130D 65%, #0D0C0A 100%)"
+                    },
+                    {
+                        pct: 0.23,
+                        source: "Morning Dew Vegetable Farms",
+                        sub: "Crisp Lettuce, Vine Tomatoes & Red Onions",
+                        body: "Dew-fresh emerald lettuce, sun-ripened tomato slices, and sharp purple onion rings cascading straight from fertile garden soil.",
+                        bg: "radial-gradient(circle at 50% 48%, #153D23 0%, #0E1711 65%, #0B0E0C 100%)"
+                    },
+                    {
+                        pct: 0.43,
+                        source: "Lush Green Dairy Pastures",
+                        sub: "Creamy Double Cheddar & Crisp Pickles",
+                        body: "Wholesome pasture milk churned into two rich, velvety cheddar slices, layered generously over tangy dill pickles and greens.",
+                        bg: "radial-gradient(circle at 50% 48%, #2E3F19 0%, #15170F 65%, #0C0D0A 100%)"
+                    },
+                    {
+                        pct: 0.64,
+                        source: "Twilight Wood-Fired Grill",
+                        sub: "Double Charcoal-Seared Beef Patties",
+                        body: "Two thick, hand-pressed beef patties seared at dusk over roaring hardwood flames—locking in smoky char and sizzling juices.",
+                        bg: "radial-gradient(circle at 50% 48%, #521A0E 0%, #180E0D 65%, #0D0A0A 100%)"
+                    },
+                    {
+                        pct: 0.98,
+                        source: "Waqar Foodies — After Darkness",
+                        sub: "The Signature Double Tower Burger",
+                        body: "Crowned with crushed peppercorns, signature house burger sauce, and warm golden bokeh—crafted to come alive after darkness.",
+                        bg: "radial-gradient(circle at 50% 48%, #36240B 0%, #12100D 65%, #0A0A09 100%)"
+                    }
+                ];
 
-                if (Math.abs(distance) < 0.04) {
-                    video.pause();
-                    isBusy = false;
-                    return;
-                }
+                let currentStep = 0;
+                let isBusy = false;
+                let animFrame = null;
 
-                const animDurationMs = Math.max(1650, Math.min(2400, Math.abs(distance) * 950));
-                const startClock = performance.now();
-                const goingForward = distance > 0;
-
-                if (goingForward) {
-                    video.muted = true;
-                    video.playbackRate = 0.35;
-                    video.play().catch(() => {});
-                } else {
-                    video.pause();
-                }
-
-                function frame(now) {
-                    const elapsed = now - startClock;
-                    const progress = Math.min(1, elapsed / animDurationMs);
-                    const eased = easeInOutCubic(progress);
-
-                    if (goingForward && !video.paused) {
-                        const speedBell = Math.sin(progress * Math.PI);
-                        const avgRate = distance / (animDurationMs / 1000);
-                        video.playbackRate = Math.min(1.6, Math.max(0.22, avgRate * (0.35 + 1.05 * speedBell)));
-
-                        if (progress >= 1 || video.currentTime >= endTime) {
-                            video.pause();
-                            video.currentTime = endTime;
-                            isBusy = false;
-                            return;
-                        }
-                    } else {
-                        video.currentTime = startTime + distance * eased;
-                        if (progress >= 1) {
-                            video.pause();
-                            video.currentTime = endTime;
-                            isBusy = false;
-                            return;
+                // Find the actual scrollable container in Streamlit
+                function getScrollContainer() {
+                    const candidates = [
+                        document.querySelector('[data-testid="stMain"]'),
+                        document.querySelector('[data-testid="stAppViewContainer"]'),
+                        document.querySelector('section.main'),
+                        document.scrollingElement,
+                        document.documentElement
+                    ];
+                    for (const el of candidates) {
+                        if (!el) continue;
+                        const style = getComputedStyle(el);
+                        if (el.scrollHeight > el.clientHeight + 20 && /(auto|scroll)/.test(style.overflowY)) {
+                            return el;
                         }
                     }
-
-                    animFrame = requestAnimationFrame(frame);
+                    return document.scrollingElement || document.documentElement;
                 }
 
-                animFrame = requestAnimationFrame(frame);
-            }
+                function smoothScrollToEl(targetEl, duration = 750) {
+                    if (!targetEl) return;
+                    const sc = getScrollContainer();
+                    const tRect = targetEl.getBoundingClientRect();
+                    const scRect = (sc === document.documentElement || sc === document.scrollingElement)
+                        ? { top: 0 }
+                        : sc.getBoundingClientRect();
+                    const startTop = sc.scrollTop;
+                    const diff = (tRect.top - scRect.top);
+                    const t0 = performance.now();
 
-            function goToStep(nextIdx) {
-                if (nextIdx < 0 || nextIdx >= sections.length || nextIdx === currentStep) return;
-                isBusy = true;
-                currentStep = nextIdx;
-                applySideText(currentStep);
-                playSegmentSlowly(sections[currentStep].pct);
-                setTimeout(() => { isBusy = false; }, 1900);
-            }
+                    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
-            function snapToStage() {
-                isBusy = true;
-                const rect = stage.getBoundingClientRect();
-                window.scrollTo({
-                    top: window.scrollY + rect.top,
-                    behavior: 'smooth'
+                    function tick(now) {
+                        const p = Math.min(1, (now - t0) / duration);
+                        sc.scrollTop = startTop + diff * easeOutCubic(p);
+                        if (p < 1) requestAnimationFrame(tick);
+                    }
+                    requestAnimationFrame(tick);
+                }
+
+                function smoothScrollToTop(duration = 700) {
+                    const sc = getScrollContainer();
+                    const startTop = sc.scrollTop;
+                    const t0 = performance.now();
+                    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+                    function tick(now) {
+                        const p = Math.min(1, (now - t0) / duration);
+                        sc.scrollTop = startTop * (1 - easeOutCubic(p));
+                        if (p < 1) requestAnimationFrame(tick);
+                    }
+                    requestAnimationFrame(tick);
+                }
+
+                dotsWrap.innerHTML = "";
+                sections.forEach((_, idx) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'wf-prog-dot' + (idx === 0 ? ' active' : '');
+                    dot.addEventListener('click', () => {
+                        if (!isBusy) goToStep(idx);
+                    });
+                    dotsWrap.appendChild(dot);
                 });
-                setTimeout(() => { isBusy = false; }, 850);
-            }
 
-            if (window.__wfStageWheelHandler) {
-                window.removeEventListener('wheel', window.__wfStageWheelHandler);
-            }
+                function applySideText(stepIdx) {
+                    const s = sections[stepIdx];
+                    stage.style.background = s.bg;
 
-            window.__wfStageWheelHandler = function(e) {
-                if (!document.body.contains(stage)) {
-                    window.removeEventListener('wheel', window.__wfStageWheelHandler);
-                    return;
+                    Array.from(dotsWrap.children).forEach((d, i) => {
+                        d.classList.toggle('active', i === stepIdx);
+                    });
+
+                    leftBox.classList.remove('wf-side-animate');
+                    rightBox.classList.remove('wf-side-animate');
+                    leftBox.classList.add('wf-side-hidden');
+                    rightBox.classList.add('wf-side-hidden');
+
+                    setTimeout(() => {
+                        sourceEl.textContent = s.source;
+                        subEl.textContent = s.sub;
+                        bodyEl.textContent = s.body;
+                        leftBox.classList.remove('wf-side-hidden');
+                        rightBox.classList.remove('wf-side-hidden');
+                        void leftBox.offsetWidth;
+                        leftBox.classList.add('wf-side-animate');
+                        rightBox.classList.add('wf-side-animate');
+                    }, 120);
                 }
-                if (Math.abs(e.deltaY) < 6) return;
 
-                const rect = stage.getBoundingClientRect();
+                // Stutter-free steady-rate forward play & smooth eased rewind
+                function playSegmentSmoothly(targetPct) {
+                    if (animFrame) cancelAnimationFrame(animFrame);
+                    const duration = video.duration;
+                    if (!duration || isNaN(duration)) {
+                        isBusy = false;
+                        return;
+                    }
 
-                if (rect.top > 45 && rect.top < window.innerHeight * 1.15 && e.deltaY > 0) {
-                    e.preventDefault();
-                    if (!isBusy) snapToStage();
-                    return;
-                }
+                    const startTime = video.currentTime;
+                    const endTime = Math.min(duration - 0.05, Math.max(0, targetPct * duration));
+                    const distance = endTime - startTime;
 
-                if (Math.abs(rect.top) <= 45) {
-                    if (e.deltaY > 0) {
-                        if (currentStep < sections.length - 1) {
-                            e.preventDefault();
-                            if (!isBusy) goToStep(currentStep + 1);
+                    if (Math.abs(distance) < 0.04) {
+                        video.pause();
+                        isBusy = false;
+                        return;
+                    }
+
+                    if (distance > 0) {
+                        video.muted = true;
+                        video.playbackRate = 0.72; // Steady rate prevents decoder stutter
+                        video.play().catch(() => {});
+
+                        function monitorForward() {
+                            if (video.currentTime >= endTime - 0.02 || video.ended) {
+                                video.pause();
+                                video.currentTime = endTime;
+                                isBusy = false;
+                                return;
+                            }
+                            animFrame = requestAnimationFrame(monitorForward);
                         }
+                        animFrame = requestAnimationFrame(monitorForward);
                     } else {
-                        if (currentStep > 0) {
+                        video.pause();
+                        const rewindMs = 950;
+                        const t0 = performance.now();
+                        function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+                        function stepBack(now) {
+                            const p = Math.min(1, (now - t0) / rewindMs);
+                            video.currentTime = startTime + distance * easeInOut(p);
+                            if (p >= 1) {
+                                video.currentTime = endTime;
+                                isBusy = false;
+                                return;
+                            }
+                            animFrame = requestAnimationFrame(stepBack);
+                        }
+                        animFrame = requestAnimationFrame(stepBack);
+                    }
+                }
+
+                function goToStep(nextIdx) {
+                    if (nextIdx < 0 || nextIdx >= sections.length || nextIdx === currentStep) return;
+                    isBusy = true;
+                    currentStep = nextIdx;
+                    applySideText(currentStep);
+                    playSegmentSmoothly(sections[currentStep].pct);
+                    setTimeout(() => { isBusy = false; }, 1250);
+                }
+
+                if (window.__wfStageWheelHandler) {
+                    window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
+                }
+
+                window.__wfStageWheelHandler = function(e) {
+                    if (!document.body.contains(stage)) {
+                        window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
+                        return;
+                    }
+                    // Do not interfere when a modal dialog or basket popover is open
+                    if (document.querySelector('[role="dialog"]') || document.querySelector('[data-testid="stPopoverBody"]')) {
+                        return;
+                    }
+                    if (Math.abs(e.deltaY) < 4) return;
+
+                    const stageRect = stage.getBoundingClientRect();
+                    const testiAnchor = document.getElementById('wf-testimonials-anchor');
+                    const reviewAnchor = document.getElementById('wf-review-anchor');
+                    const testiBox = document.getElementById('wf-testi-box');
+
+                    // 1. At Hero (top of page) -> any downward scroll snaps straight to full-screen stage
+                    if (stageRect.top > 55 && e.deltaY > 0) {
+                        e.preventDefault();
+                        if (!isBusy) {
+                            isBusy = true;
+                            smoothScrollToEl(stage, 750);
+                            setTimeout(() => { isBusy = false; }, 820);
+                        }
+                        return;
+                    }
+
+                    // 2. Locked inside Full-Screen Stage
+                    if (Math.abs(stageRect.top) <= 55) {
+                        e.preventDefault();
+                        if (isBusy) return;
+
+                        if (e.deltaY > 0) {
+                            if (currentStep < sections.length - 1) {
+                                goToStep(currentStep + 1);
+                            } else if (testiAnchor) {
+                                // At last section -> next scroll takes user directly to Testimonials
+                                isBusy = true;
+                                smoothScrollToEl(testiAnchor, 800);
+                                setTimeout(() => { isBusy = false; }, 860);
+                            }
+                        } else {
+                            if (currentStep > 0) {
+                                goToStep(currentStep - 1);
+                            } else {
+                                isBusy = true;
+                                smoothScrollToTop(700);
+                                setTimeout(() => { isBusy = false; }, 760);
+                            }
+                        }
+                        return;
+                    }
+
+                    // 3. At Testimonials Section
+                    if (testiAnchor && reviewAnchor) {
+                        const testiRect = testiAnchor.getBoundingClientRect();
+                        const revRect = reviewAnchor.getBoundingClientRect();
+
+                        // If user is in Testimonials zone
+                        if (testiRect.top <= 140 && revRect.top > 120) {
+                            // Let #wf-testi-box handle wheel inside the box unless handled by box boundary
+                            if (testiBox && testiBox.contains(e.target)) {
+                                return;
+                            }
                             e.preventDefault();
-                            if (!isBusy) goToStep(currentStep - 1);
+                            if (isBusy) return;
+
+                            if (e.deltaY > 0) {
+                                isBusy = true;
+                                smoothScrollToEl(reviewAnchor, 780);
+                                setTimeout(() => { isBusy = false; }, 850);
+                            } else {
+                                isBusy = true;
+                                smoothScrollToEl(stage, 780);
+                                setTimeout(() => { isBusy = false; }, 850);
+                            }
+                            return;
+                        }
+
+                        // Scrolling back up from Submit Review to Testimonials
+                        if (revRect.top <= 120 && e.deltaY < 0 && window.scrollY >= 0) {
+                            const sc = getScrollContainer();
+                            if (revRect.top > -90) {
+                                e.preventDefault();
+                                if (!isBusy) {
+                                    isBusy = true;
+                                    smoothScrollToEl(testiAnchor, 750);
+                                    setTimeout(() => { isBusy = false; }, 820);
+                                }
+                            }
                         }
                     }
-                    return;
-                }
+                };
 
-                if (rect.top < -45 && rect.bottom > window.innerHeight * 0.45 && e.deltaY < 0) {
-                    e.preventDefault();
-                    if (!isBusy) snapToStage();
-                }
-            };
+                window.addEventListener('wheel', window.__wfStageWheelHandler, { passive: false, capture: true });
 
-            window.addEventListener('wheel', window.__wfStageWheelHandler, { passive: false });
+                let tY = null;
+                stage.addEventListener('touchstart', (e) => { tY = e.touches[0].clientY; }, { passive: true });
+                stage.addEventListener('touchend', (e) => {
+                    if (tY === null) return;
+                    const diff = tY - e.changedTouches[0].clientY;
+                    tY = null;
+                    if (Math.abs(diff) < 35 || isBusy) return;
+                    if (diff > 0) {
+                        if (currentStep < sections.length - 1) goToStep(currentStep + 1);
+                        else {
+                            const testiAnchor = document.getElementById('wf-testimonials-anchor');
+                            if (testiAnchor) smoothScrollToEl(testiAnchor, 800);
+                        }
+                    } else if (diff < 0 && currentStep > 0) {
+                        goToStep(currentStep - 1);
+                    }
+                }, { passive: true });
 
-            let tY = null;
-            stage.addEventListener('touchstart', (e) => { tY = e.touches[0].clientY; }, { passive: true });
-            stage.addEventListener('touchend', (e) => {
-                if (tY === null) return;
-                const diff = tY - e.changedTouches[0].clientY;
-                tY = null;
-                if (Math.abs(diff) < 35 || isBusy) return;
-                if (diff > 0 && currentStep < sections.length - 1) goToStep(currentStep + 1);
-                else if (diff < 0 && currentStep > 0) goToStep(currentStep - 1);
-            }, { passive: true });
+                video.addEventListener('loadedmetadata', () => {
+                    video.currentTime = 0;
+                    video.pause();
+                });
 
-            video.addEventListener('loadedmetadata', () => {
-                video.currentTime = 0;
-                video.pause();
-            });
+                // Expose smoothScrollToEl for Testimonials boundary handoff
+                window.__wfSmoothScrollToEl = smoothScrollToEl;
+            }
+
+            requestAnimationFrame(initStageScroll);
         })();
         </script>
         """,
         unsafe_allow_javascript=True,
     )
 
+    # Order Now button
     _, cta_col, _ = st.columns([1.4, 1.2, 1.4])
     with cta_col:
         st.write("")
@@ -1175,15 +1411,52 @@ def render_home_page():
             st.rerun()
 
     # 4. Bounded Auto-Scrolling & User-Scrollable Blurred Testimonials Carousel
+    #    (Cards rendered directly in HTML + fresh user reviews from get_live_reviews_store())
+    live_reviews = get_live_reviews_store()
+    n_reviews = len(live_reviews)
+    star_svg = (
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="#D4AF37">'
+        '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>'
+        '</svg>'
+    )
+
+    cards_html_parts = []
+    for idx, rev in enumerate(live_reviews):
+        diff = idx
+        if diff > n_reviews // 2:
+            diff -= n_reviews
+        elif diff < -(n_reviews // 2):
+            diff += n_reviews
+        pos_attr = str(diff) if abs(diff) <= 2 else "hidden"
+
+        safe_name = html.escape(str(rev["name"]))
+        safe_text = html.escape(str(rev["text"]))
+        stars_count = max(1, min(5, int(rev.get("stars", 5))))
+        stars_html = f'<span class="wf-svg-stars">{star_svg * stars_count}</span>'
+
+        cards_html_parts.append(
+            f"""
+            <div class="wf-t-card" data-idx="{idx}" data-pos="{pos_attr}">
+                <div class="wf-t-quote">“{safe_text}”</div>
+                <div class="wf-t-author">
+                    <span>— {safe_name}</span>
+                    {stars_html}
+                </div>
+            </div>
+            """
+        )
+
+    cards_markup = "\n".join(cards_html_parts)
+
     st.html(
-        """
-        <div class="wf-blur-in" style="margin-top:3.2rem;">
+        f"""
+        <div id="wf-testimonials-anchor" style="margin-top:3.2rem; padding-top:1.5rem;">
             <h2 class="wf-section-title">Voices After <span>Darkness</span></h2>
             <p class="wf-section-sub">Scroll or select any review to explore what our regulars say.</p>
         </div>
 
         <style>
-        #wf-testi-box {
+        #wf-testi-box {{
             position: relative;
             height: 410px;
             max-width: 740px;
@@ -1195,9 +1468,9 @@ def render_home_page():
             perspective: 900px;
             user-select: none;
             cursor: ns-resize;
-        }
+        }}
         #wf-testi-box::before,
-        #wf-testi-box::after {
+        #wf-testi-box::after {{
             content: "";
             position: absolute;
             left: 0;
@@ -1205,16 +1478,16 @@ def render_home_page():
             height: 75px;
             z-index: 10;
             pointer-events: none;
-        }
-        #wf-testi-box::before {
+        }}
+        #wf-testi-box::before {{
             top: 0;
             background: linear-gradient(180deg, #121212 10%, transparent 100%);
-        }
-        #wf-testi-box::after {
+        }}
+        #wf-testi-box::after {{
             bottom: 0;
             background: linear-gradient(0deg, #121212 10%, transparent 100%);
-        }
-        .wf-t-card {
+        }}
+        .wf-t-card {{
             position: absolute;
             left: 50%;
             top: 50%;
@@ -1226,148 +1499,165 @@ def render_home_page():
             border: 1px solid rgba(212, 175, 55, 0.2);
             transition: all 0.72s cubic-bezier(0.22, 1, 0.36, 1);
             box-sizing: border-box;
-        }
-        .wf-t-card[data-pos="0"] {
+        }}
+        .wf-t-card[data-pos="0"] {{
             transform: translate(-50%, -50%) scale(1) rotateX(0deg);
             filter: blur(0px);
             opacity: 1;
             z-index: 5;
             border-color: #D4AF37;
             box-shadow: 0 18px 42px rgba(0, 0, 0, 0.65), 0 0 24px rgba(212, 175, 55, 0.18);
-        }
-        .wf-t-card[data-pos="-1"] {
+        }}
+        .wf-t-card[data-pos="-1"] {{
             transform: translate(-50%, -138%) scale(0.86) rotateX(18deg) skewX(-1.5deg);
             filter: blur(4px) contrast(0.9);
             opacity: 0.45;
             z-index: 3;
-        }
-        .wf-t-card[data-pos="1"] {
+        }}
+        .wf-t-card[data-pos="1"] {{
             transform: translate(-50%, 38%) scale(0.86) rotateX(-18deg) skewX(1.5deg);
             filter: blur(4px) contrast(0.9);
             opacity: 0.45;
             z-index: 3;
-        }
-        .wf-t-card[data-pos="-2"] {
+        }}
+        .wf-t-card[data-pos="-2"] {{
             transform: translate(-50%, -215%) scale(0.74) rotateX(28deg) skewX(-3deg);
             filter: blur(8px);
             opacity: 0.14;
             z-index: 1;
-        }
-        .wf-t-card[data-pos="2"] {
+        }}
+        .wf-t-card[data-pos="2"] {{
             transform: translate(-50%, 115%) scale(0.74) rotateX(-28deg) skewX(3deg);
             filter: blur(8px);
             opacity: 0.14;
             z-index: 1;
-        }
-        .wf-t-quote {
+        }}
+        .wf-t-card[data-pos="hidden"] {{
+            transform: translate(-50%, 260%) scale(0.6);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 0;
+        }}
+        .wf-t-quote {{
             color: #F5EFE6;
             font-size: 1rem;
             line-height: 1.55;
             font-style: italic;
             margin-bottom: 0.7rem;
-        }
-        .wf-t-author {
+        }}
+        .wf-t-author {{
             display: flex;
             align-items: center;
             justify-content: space-between;
             color: #D4AF37;
             font-weight: 700;
             font-size: 0.96rem;
-        }
-        .wf-svg-stars {
+        }}
+        .wf-svg-stars {{
             display: inline-flex;
             gap: 3px;
             align-items: center;
-        }
+        }}
         </style>
 
-        <div id="wf-testi-box"></div>
+        <div id="wf-testi-box">
+            {cards_markup}
+        </div>
 
         <script>
-        (function() {
-            const box = document.getElementById('wf-testi-box');
-            const reviews = [
-                { name: "Ali", text: "The Tower Burger after midnight is unbeatable. That smoky charcoal sear and warm buttered brioche hit different every single time." },
-                { name: "Abdullah", text: "Ordered the Chicken Paratha Roll with friends — flaky, juicy, and packed with spice. Easily the best late-night cafe vibe around." },
-                { name: "Umer", text: "Dark charcoal aesthetic, super smooth service, and the signature sauce on the burger is pure perfection. My regular weekend stop." },
-                { name: "Ahmed", text: "Fast order confirmation and piping hot delivery. Waqar Foodies never compromises on ingredient freshness." },
-                { name: "Junaid", text: "From the first bite to the last crumb, you can taste the craft. Top marks for both the Tower Burger and Paratha Roll." }
-            ];
+        (function() {{
+            function initTestimonials() {{
+                const box = document.getElementById('wf-testi-box');
+                if (!box) {{
+                    requestAnimationFrame(initTestimonials);
+                    return;
+                }}
 
-            const starSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="#D4AF37"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
-            const fiveStars = `<span class="wf-svg-stars">${starSvg.repeat(5)}</span>`;
+                const cards = Array.from(box.querySelectorAll('.wf-t-card'));
+                if (cards.length === 0) return;
 
-            let activeIdx = 0;
-            let autoTimer = null;
-            let resumeTimeout = null;
-            let wheelLock = false;
+                let activeIdx = 0;
+                let autoTimer = null;
+                let resumeTimeout = null;
+                let wheelLock = false;
 
-            const cards = reviews.map((rev, idx) => {
-                const el = document.createElement('div');
-                el.className = 'wf-t-card';
-                el.innerHTML = `
-                    <div class="wf-t-quote">“${rev.text}”</div>
-                    <div class="wf-t-author">
-                        <span>— ${rev.name}</span>
-                        ${fiveStars}
-                    </div>
-                `;
-                el.addEventListener('click', () => {
-                    activeIdx = idx;
+                function layout() {{
+                    const n = cards.length;
+                    cards.forEach((card, i) => {{
+                        let diff = i - activeIdx;
+                        if (diff > Math.floor(n / 2)) diff -= n;
+                        if (diff < -Math.floor(n / 2)) diff += n;
+                        card.setAttribute('data-pos', Math.abs(diff) <= 2 ? String(diff) : 'hidden');
+                    }});
+                }}
+
+                function step(dir) {{
+                    activeIdx = (activeIdx + dir + cards.length) % cards.length;
                     layout();
-                    resetAuto(6000);
-                });
-                box.appendChild(el);
-                return el;
-            });
+                }}
 
-            function layout() {
-                const n = reviews.length;
-                cards.forEach((card, i) => {
-                    let diff = i - activeIdx;
-                    if (diff > Math.floor(n / 2)) diff -= n;
-                    if (diff < -Math.floor(n / 2)) diff += n;
-                    card.setAttribute('data-pos', String(diff));
-                });
-            }
+                function resetAuto(pauseMs = 3400) {{
+                    if (autoTimer) clearInterval(autoTimer);
+                    if (resumeTimeout) clearTimeout(resumeTimeout);
+                    resumeTimeout = setTimeout(() => {{
+                        autoTimer = setInterval(() => step(1), 3400);
+                    }}, pauseMs === 3400 ? 0 : pauseMs);
+                }}
 
-            function step(dir) {
-                activeIdx = (activeIdx + dir + reviews.length) % reviews.length;
+                cards.forEach((card, idx) => {{
+                    card.addEventListener('click', () => {{
+                        activeIdx = idx;
+                        layout();
+                        resetAuto(6000);
+                    }});
+                }});
+
+                box.addEventListener('wheel', (e) => {{
+                    if (Math.abs(e.deltaY) < 6) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (wheelLock) return;
+                    wheelLock = true;
+
+                    // If user reached last review and scrolls down, smoothly take them to Submit Review
+                    if (e.deltaY > 0 && activeIdx === cards.length - 1) {{
+                        const revAnchor = document.getElementById('wf-review-anchor');
+                        if (revAnchor && window.__wfSmoothScrollToEl) {{
+                            window.__wfSmoothScrollToEl(revAnchor, 780);
+                        }}
+                    }} else if (e.deltaY < 0 && activeIdx === 0) {{
+                        const stageEl = document.getElementById('wf-fullscreen-stage');
+                        if (stageEl && window.__wfSmoothScrollToEl) {{
+                            window.__wfSmoothScrollToEl(stageEl, 780);
+                        }}
+                    }} else {{
+                        step(e.deltaY > 0 ? 1 : -1);
+                        resetAuto(5500);
+                    }}
+
+                    setTimeout(() => {{ wheelLock = false; }}, 360);
+                }}, {{ passive: false }});
+
+                let tStartY = null;
+                box.addEventListener('touchstart', (e) => {{ tStartY = e.touches[0].clientY; }}, {{ passive: true }});
+                box.addEventListener('touchend', (e) => {{
+                    if (tStartY === null) return;
+                    const d = tStartY - e.changedTouches[0].clientY;
+                    tStartY = null;
+                    if (Math.abs(d) > 25) {{
+                        step(d > 0 ? 1 : -1);
+                        resetAuto(5500);
+                    }}
+                }}, {{ passive: true });
+
                 layout();
-            }
+                if (window.__wfTestiInterval) clearInterval(window.__wfTestiInterval);
+                autoTimer = setInterval(() => step(1), 3400);
+                window.__wfTestiInterval = autoTimer;
+            }}
 
-            function resetAuto(pauseMs = 3400) {
-                if (autoTimer) clearInterval(autoTimer);
-                if (resumeTimeout) clearTimeout(resumeTimeout);
-                resumeTimeout = setTimeout(() => {
-                    autoTimer = setInterval(() => step(1), 3400);
-                }, pauseMs === 3400 ? 0 : pauseMs);
-            }
-
-            box.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                if (wheelLock || Math.abs(e.deltaY) < 6) return;
-                wheelLock = true;
-                step(e.deltaY > 0 ? 1 : -1);
-                resetAuto(5500);
-                setTimeout(() => { wheelLock = false; }, 320);
-            }, { passive: false });
-
-            let tStartY = null;
-            box.addEventListener('touchstart', (e) => { tStartY = e.touches[0].clientY; }, { passive: true });
-            box.addEventListener('touchend', (e) => {
-                if (tStartY === null) return;
-                const d = tStartY - e.changedTouches[0].clientY;
-                tStartY = null;
-                if (Math.abs(d) > 25) {
-                    step(d > 0 ? 1 : -1);
-                    resetAuto(5500);
-                }
-            }, { passive: true });
-
-            layout();
-            autoTimer = setInterval(() => step(1), 3400);
-        })();
+            requestAnimationFrame(initTestimonials);
+        }})();
         </script>
         """,
         unsafe_allow_javascript=True,
