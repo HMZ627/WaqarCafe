@@ -127,7 +127,6 @@ def get_cart_summary() -> tuple[list[dict], int, int]:
 # -----------------------------------------------------------------------------
 @st.dialog("Complete Your Order", width="large")
 def show_checkout_dialog():
-    # Ensure any open basket popover closes cleanly when checkout dialog appears
     st.html(
         """
         <script>
@@ -194,18 +193,17 @@ def show_checkout_dialog():
     if payment_method == "Online (JazzCash)":
         jc_number = html.escape(str(st.secrets.get("JAZZCASH_NUMBER", "0300-0000000")))
         jc_title = html.escape(str(st.secrets.get("JAZZCASH_NAME", "Waqar Foodies")))
-        st.html(
-            f"""
+        jazzcash_html = """
             <div class="wf-jazzcash-box">
                 <div style="font-weight:700; color:#F0CA5A; margin-bottom:4px;">JazzCash Transfer Details</div>
-                <div>Account Number: <strong style="font-size:1.1rem; letter-spacing:1px;">{jc_number}</strong></div>
-                <div>Account Title: <strong>{jc_title}</strong></div>
+                <div>Account Number: <strong style="font-size:1.1rem; letter-spacing:1px;">__JC_NUMBER__</strong></div>
+                <div>Account Title: <strong>__JC_TITLE__</strong></div>
                 <div style="font-size:0.86rem; color:#CFC4B4; margin-top:6px;">
-                    Please transfer <strong>PKR {grand_total:,}/-</strong> and upload your payment screenshot below (Max 2 MB).
+                    Please transfer <strong>PKR __TOTAL__/-</strong> and upload your payment screenshot below (Max 2 MB).
                 </div>
             </div>
-            """
-        )
+        """.replace("__JC_NUMBER__", jc_number).replace("__JC_TITLE__", jc_title).replace("__TOTAL__", f"{grand_total:,}")
+        st.html(jazzcash_html)
         uploaded_receipt = st.file_uploader(
             "Upload Payment Screenshot * (PNG/JPG/WEBP, Max 2 MB)",
             type=["png", "jpg", "jpeg", "webp"],
@@ -289,14 +287,13 @@ def show_checkout_dialog():
 
 @st.dialog("Order Confirmed")
 def show_confirmation_dialog(order_id: str):
-    st.html(
-        f"""
+    confirm_html = """
         <div style="text-align:center;">
             <div style="color:#CFC4B4; margin-top:4px; font-size:0.95rem; letter-spacing:1px; text-transform:uppercase;">
                 Your Order ID
             </div>
             <div class="wf-order-id-box">
-                <div class="wf-order-id-code" id="wf-order-id-text">{order_id}</div>
+                <div class="wf-order-id-code" id="wf-order-id-text">__ORDER_ID__</div>
             </div>
             <button id="wf-copy-btn"
                 style="background:linear-gradient(135deg,#D4AF37,#B88E24); color:#121212;
@@ -310,21 +307,23 @@ def show_confirmation_dialog(order_id: str):
             </p>
         </div>
         <script>
-        const btn = document.getElementById('wf-copy-btn');
-        if (btn) {{
-            btn.addEventListener('click', async () => {{
-                try {{
-                    await navigator.clipboard.writeText("{order_id}");
-                    document.getElementById('wf-copy-status').textContent = "Copied to clipboard!";
-                }} catch (e) {{
-                    document.getElementById('wf-copy-status').textContent = "Select and copy the ID above.";
-                }}
-            }});
-        }}
+        (function() {
+            const btn = document.getElementById('wf-copy-btn');
+            if (btn) {
+                btn.addEventListener('click', async () => {
+                    try {
+                        await navigator.clipboard.writeText("__ORDER_ID__");
+                        document.getElementById('wf-copy-status').textContent = "Copied to clipboard!";
+                    } catch (e) {
+                        document.getElementById('wf-copy-status').textContent = "Select and copy the ID above.";
+                    }
+                });
+            }
+        })();
         </script>
-        """,
-        unsafe_allow_javascript=True,
-    )
+    """.replace("__ORDER_ID__", html.escape(order_id))
+
+    st.html(confirm_html, unsafe_allow_javascript=True)
     st.code(order_id, language=None)
     if st.button("Done", type="primary", use_container_width=True):
         st.session_state.confirmed_order_id = None
@@ -358,12 +357,9 @@ def render_navbar():
         c_logo, c_home = st.columns([3.4, 1.0], vertical_alignment="center")
         with c_logo:
             st.html(
-                f"""
-                <div class="wf-brand-wrap">
-                    {logo_html}
-                    <span class="wf-brand-name">Waqar Foodies</span>
-                </div>
-                """
+                '<div class="wf-brand-wrap">'
+                + logo_html
+                + '<span class="wf-brand-name">Waqar Foodies</span></div>'
             )
         with c_home:
             if st.button("Home", key="nav_home"):
@@ -484,7 +480,6 @@ def render_review_section(standalone: bool = False):
                     ok = send_review_webhook(stars=stars, review_text=clean_rev, reviewer_name=clean_name)
 
                 if ok:
-                    # Add fresh review straight into the live Testimonials Carousel
                     reviews_store = get_live_reviews_store()
                     reviews_store.insert(0, {
                         "name": clean_name,
@@ -567,16 +562,15 @@ def render_menu_page():
                     if img_path.exists()
                     else f'<div class="wf-menu-placeholder">{item["name"]}</div>'
                 )
-                st.html(
-                    f"""
+                card_html = """
                     <div class="wf-menu-card wf-blur-in">
-                        {img_html}
-                        <div class="wf-menu-title">{item['name']}</div>
-                        <div class="wf-menu-price">{item['price']}/- PKR</div>
-                        <div class="wf-menu-desc">{item['desc']}</div>
+                        __IMG__
+                        <div class="wf-menu-title">__NAME__</div>
+                        <div class="wf-menu-price">__PRICE__/- PKR</div>
+                        <div class="wf-menu-desc">__DESC__</div>
                     </div>
-                    """
-                )
+                """.replace("__IMG__", img_html).replace("__NAME__", item["name"]).replace("__PRICE__", str(item["price"])).replace("__DESC__", item["desc"])
+                st.html(card_html)
                 b1, b2 = st.columns(2)
                 with b1:
                     if st.button("Order now", key=f"order_now_{item_key}", type="primary", use_container_width=True):
@@ -685,7 +679,6 @@ def render_home_page():
                     return;
                 }
 
-                // Append overlay directly to body so parent transforms never clip full-screen fixed positioning
                 if (overlay.parentElement !== document.body) {
                     document.body.appendChild(overlay);
                 }
@@ -699,7 +692,6 @@ def render_home_page():
                     return;
                 }
 
-                // Hide main app elements until 1s after intro fades out
                 if (appRoot) {
                     appRoot.classList.remove('wf-blur-in');
                     appRoot.classList.add('wf-page-hidden');
@@ -711,8 +703,6 @@ def render_home_page():
                     if (finished) return;
                     finished = true;
                     window.__wfIntroDone = true;
-
-                    // Fade out intro overlay
                     overlay.style.opacity = '0';
 
                     setTimeout(() => {
@@ -1117,7 +1107,6 @@ def render_home_page():
                 let isBusy = false;
                 let animFrame = null;
 
-                // Find the actual scrollable container in Streamlit
                 function getScrollContainer() {
                     const candidates = [
                         document.querySelector('[data-testid="stMain"]'),
@@ -1205,7 +1194,6 @@ def render_home_page():
                     }, 120);
                 }
 
-                // Stutter-free steady-rate forward play & smooth eased rewind
                 function playSegmentSmoothly(targetPct) {
                     if (animFrame) cancelAnimationFrame(animFrame);
                     const duration = video.duration;
@@ -1226,7 +1214,7 @@ def render_home_page():
 
                     if (distance > 0) {
                         video.muted = true;
-                        video.playbackRate = 0.72; // Steady rate prevents decoder stutter
+                        video.playbackRate = 0.72;
                         video.play().catch(() => {});
 
                         function monitorForward() {
@@ -1276,7 +1264,6 @@ def render_home_page():
                         window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
                         return;
                     }
-                    // Do not interfere when a modal dialog or basket popover is open
                     if (document.querySelector('[role="dialog"]') || document.querySelector('[data-testid="stPopoverBody"]')) {
                         return;
                     }
@@ -1287,7 +1274,7 @@ def render_home_page():
                     const reviewAnchor = document.getElementById('wf-review-anchor');
                     const testiBox = document.getElementById('wf-testi-box');
 
-                    // 1. At Hero (top of page) -> any downward scroll snaps straight to full-screen stage
+                    // 1. At Hero -> single scroll snaps cleanly onto full-screen stage
                     if (stageRect.top > 55 && e.deltaY > 0) {
                         e.preventDefault();
                         if (!isBusy) {
@@ -1298,7 +1285,7 @@ def render_home_page():
                         return;
                     }
 
-                    // 2. Locked inside Full-Screen Stage
+                    // 2. Locked inside full-screen stage
                     if (Math.abs(stageRect.top) <= 55) {
                         e.preventDefault();
                         if (isBusy) return;
@@ -1307,7 +1294,6 @@ def render_home_page():
                             if (currentStep < sections.length - 1) {
                                 goToStep(currentStep + 1);
                             } else if (testiAnchor) {
-                                // At last section -> next scroll takes user directly to Testimonials
                                 isBusy = true;
                                 smoothScrollToEl(testiAnchor, 800);
                                 setTimeout(() => { isBusy = false; }, 860);
@@ -1324,14 +1310,12 @@ def render_home_page():
                         return;
                     }
 
-                    // 3. At Testimonials Section
+                    // 3. Testimonials <-> Submit Review snap
                     if (testiAnchor && reviewAnchor) {
                         const testiRect = testiAnchor.getBoundingClientRect();
                         const revRect = reviewAnchor.getBoundingClientRect();
 
-                        // If user is in Testimonials zone
                         if (testiRect.top <= 140 && revRect.top > 120) {
-                            // Let #wf-testi-box handle wheel inside the box unless handled by box boundary
                             if (testiBox && testiBox.contains(e.target)) {
                                 return;
                             }
@@ -1350,16 +1334,12 @@ def render_home_page():
                             return;
                         }
 
-                        // Scrolling back up from Submit Review to Testimonials
-                        if (revRect.top <= 120 && e.deltaY < 0 && window.scrollY >= 0) {
-                            const sc = getScrollContainer();
-                            if (revRect.top > -90) {
-                                e.preventDefault();
-                                if (!isBusy) {
-                                    isBusy = true;
-                                    smoothScrollToEl(testiAnchor, 750);
-                                    setTimeout(() => { isBusy = false; }, 820);
-                                }
+                        if (revRect.top <= 120 && revRect.top > -90 && e.deltaY < 0) {
+                            e.preventDefault();
+                            if (!isBusy) {
+                                isBusy = true;
+                                smoothScrollToEl(testiAnchor, 750);
+                                setTimeout(() => { isBusy = false; }, 820);
                             }
                         }
                     }
@@ -1390,7 +1370,6 @@ def render_home_page():
                     video.pause();
                 });
 
-                // Expose smoothScrollToEl for Testimonials boundary handoff
                 window.__wfSmoothScrollToEl = smoothScrollToEl;
             }
 
@@ -1401,7 +1380,6 @@ def render_home_page():
         unsafe_allow_javascript=True,
     )
 
-    # Order Now button
     _, cta_col, _ = st.columns([1.4, 1.2, 1.4])
     with cta_col:
         st.write("")
@@ -1411,7 +1389,6 @@ def render_home_page():
             st.rerun()
 
     # 4. Bounded Auto-Scrolling & User-Scrollable Blurred Testimonials Carousel
-    #    (Cards rendered directly in HTML + fresh user reviews from get_live_reviews_store())
     live_reviews = get_live_reviews_store()
     n_reviews = len(live_reviews)
     star_svg = (
@@ -1435,28 +1412,22 @@ def render_home_page():
         stars_html = f'<span class="wf-svg-stars">{star_svg * stars_count}</span>'
 
         cards_html_parts.append(
-            f"""
-            <div class="wf-t-card" data-idx="{idx}" data-pos="{pos_attr}">
-                <div class="wf-t-quote">“{safe_text}”</div>
-                <div class="wf-t-author">
-                    <span>— {safe_name}</span>
-                    {stars_html}
-                </div>
-            </div>
-            """
+            '<div class="wf-t-card" data-idx="' + str(idx) + '" data-pos="' + pos_attr + '">'
+            '<div class="wf-t-quote">“' + safe_text + '”</div>'
+            '<div class="wf-t-author"><span>— ' + safe_name + '</span>' + stars_html + '</div>'
+            '</div>'
         )
 
     cards_markup = "\n".join(cards_html_parts)
 
-    st.html(
-        f"""
+    testimonials_html = """
         <div id="wf-testimonials-anchor" style="margin-top:3.2rem; padding-top:1.5rem;">
             <h2 class="wf-section-title">Voices After <span>Darkness</span></h2>
             <p class="wf-section-sub">Scroll or select any review to explore what our regulars say.</p>
         </div>
 
         <style>
-        #wf-testi-box {{
+        #wf-testi-box {
             position: relative;
             height: 410px;
             max-width: 740px;
@@ -1468,9 +1439,9 @@ def render_home_page():
             perspective: 900px;
             user-select: none;
             cursor: ns-resize;
-        }}
+        }
         #wf-testi-box::before,
-        #wf-testi-box::after {{
+        #wf-testi-box::after {
             content: "";
             position: absolute;
             left: 0;
@@ -1478,16 +1449,16 @@ def render_home_page():
             height: 75px;
             z-index: 10;
             pointer-events: none;
-        }}
-        #wf-testi-box::before {{
+        }
+        #wf-testi-box::before {
             top: 0;
             background: linear-gradient(180deg, #121212 10%, transparent 100%);
-        }}
-        #wf-testi-box::after {{
+        }
+        #wf-testi-box::after {
             bottom: 0;
             background: linear-gradient(0deg, #121212 10%, transparent 100%);
-        }}
-        .wf-t-card {{
+        }
+        .wf-t-card {
             position: absolute;
             left: 50%;
             top: 50%;
@@ -1499,79 +1470,79 @@ def render_home_page():
             border: 1px solid rgba(212, 175, 55, 0.2);
             transition: all 0.72s cubic-bezier(0.22, 1, 0.36, 1);
             box-sizing: border-box;
-        }}
-        .wf-t-card[data-pos="0"] {{
+        }
+        .wf-t-card[data-pos="0"] {
             transform: translate(-50%, -50%) scale(1) rotateX(0deg);
             filter: blur(0px);
             opacity: 1;
             z-index: 5;
             border-color: #D4AF37;
             box-shadow: 0 18px 42px rgba(0, 0, 0, 0.65), 0 0 24px rgba(212, 175, 55, 0.18);
-        }}
-        .wf-t-card[data-pos="-1"] {{
+        }
+        .wf-t-card[data-pos="-1"] {
             transform: translate(-50%, -138%) scale(0.86) rotateX(18deg) skewX(-1.5deg);
             filter: blur(4px) contrast(0.9);
             opacity: 0.45;
             z-index: 3;
-        }}
-        .wf-t-card[data-pos="1"] {{
+        }
+        .wf-t-card[data-pos="1"] {
             transform: translate(-50%, 38%) scale(0.86) rotateX(-18deg) skewX(1.5deg);
             filter: blur(4px) contrast(0.9);
             opacity: 0.45;
             z-index: 3;
-        }}
-        .wf-t-card[data-pos="-2"] {{
+        }
+        .wf-t-card[data-pos="-2"] {
             transform: translate(-50%, -215%) scale(0.74) rotateX(28deg) skewX(-3deg);
             filter: blur(8px);
             opacity: 0.14;
             z-index: 1;
-        }}
-        .wf-t-card[data-pos="2"] {{
+        }
+        .wf-t-card[data-pos="2"] {
             transform: translate(-50%, 115%) scale(0.74) rotateX(-28deg) skewX(3deg);
             filter: blur(8px);
             opacity: 0.14;
             z-index: 1;
-        }}
-        .wf-t-card[data-pos="hidden"] {{
+        }
+        .wf-t-card[data-pos="hidden"] {
             transform: translate(-50%, 260%) scale(0.6);
             opacity: 0;
             pointer-events: none;
             z-index: 0;
-        }}
-        .wf-t-quote {{
+        }
+        .wf-t-quote {
             color: #F5EFE6;
             font-size: 1rem;
             line-height: 1.55;
             font-style: italic;
             margin-bottom: 0.7rem;
-        }}
-        .wf-t-author {{
+        }
+        .wf-t-author {
             display: flex;
             align-items: center;
             justify-content: space-between;
             color: #D4AF37;
             font-weight: 700;
             font-size: 0.96rem;
-        }}
-        .wf-svg-stars {{
+        }
+        .wf-svg-stars {
             display: inline-flex;
             gap: 3px;
             align-items: center;
-        }}
+        }
         </style>
 
         <div id="wf-testi-box">
-            {cards_markup}
+            __CARDS_MARKUP__
         </div>
 
         <script>
-        (function() {{
-            function initTestimonials() {{
+        (function() {
+            function initTestimonials() {
                 const box = document.getElementById('wf-testi-box');
-                if (!box) {{
+                if (!box) {
                     requestAnimationFrame(initTestimonials);
                     return;
-                }}
+                }
 
                 const cards = Array.from(box.querySelectorAll('.wf-t-card'));
                 if (cards.length === 0) return;
@@ -1581,87 +1552,86 @@ def render_home_page():
                 let resumeTimeout = null;
                 let wheelLock = false;
 
-                function layout() {{
+                function layout() {
                     const n = cards.length;
-                    cards.forEach((card, i) => {{
+                    cards.forEach((card, i) => {
                         let diff = i - activeIdx;
                         if (diff > Math.floor(n / 2)) diff -= n;
                         if (diff < -Math.floor(n / 2)) diff += n;
                         card.setAttribute('data-pos', Math.abs(diff) <= 2 ? String(diff) : 'hidden');
-                    }});
-                }}
+                    });
+                }
 
-                function step(dir) {{
+                function step(dir) {
                     activeIdx = (activeIdx + dir + cards.length) % cards.length;
                     layout();
-                }}
+                }
 
-                function resetAuto(pauseMs = 3400) {{
+                function resetAuto(pauseMs = 3400) {
                     if (autoTimer) clearInterval(autoTimer);
                     if (resumeTimeout) clearTimeout(resumeTimeout);
-                    resumeTimeout = setTimeout(() => {{
+                    resumeTimeout = setTimeout(() => {
                         autoTimer = setInterval(() => step(1), 3400);
-                    }}, pauseMs === 3400 ? 0 : pauseMs);
-                }}
+                    }, pauseMs === 3400 ? 0 : pauseMs);
+                }
 
-                cards.forEach((card, idx) => {{
-                    card.addEventListener('click', () => {{
+                cards.forEach((card, idx) => {
+                    card.addEventListener('click', () => {
                         activeIdx = idx;
                         layout();
                         resetAuto(6000);
-                    }});
-                }});
+                    });
+                });
 
-                box.addEventListener('wheel', (e) => {{
+                box.addEventListener('wheel', (e) => {
                     if (Math.abs(e.deltaY) < 6) return;
                     e.preventDefault();
                     e.stopPropagation();
                     if (wheelLock) return;
                     wheelLock = true;
 
-                    // If user reached last review and scrolls down, smoothly take them to Submit Review
-                    if (e.deltaY > 0 && activeIdx === cards.length - 1) {{
+                    if (e.deltaY > 0 && activeIdx === cards.length - 1) {
                         const revAnchor = document.getElementById('wf-review-anchor');
-                        if (revAnchor && window.__wfSmoothScrollToEl) {{
+                        if (revAnchor && window.__wfSmoothScrollToEl) {
                             window.__wfSmoothScrollToEl(revAnchor, 780);
-                        }}
-                    }} else if (e.deltaY < 0 && activeIdx === 0) {{
+                        }
+                    } else if (e.deltaY < 0 && activeIdx === 0) {
                         const stageEl = document.getElementById('wf-fullscreen-stage');
-                        if (stageEl && window.__wfSmoothScrollToEl) {{
+                        if (stageEl && window.__wfSmoothScrollToEl) {
                             window.__wfSmoothScrollToEl(stageEl, 780);
-                        }}
-                    }} else {{
+                        }
+                    } else {
                         step(e.deltaY > 0 ? 1 : -1);
                         resetAuto(5500);
-                    }}
+                    }
 
-                    setTimeout(() => {{ wheelLock = false; }}, 360);
-                }}, {{ passive: false }});
+                    setTimeout(() => { wheelLock = false; }, 360);
+                }, { passive: false });
 
                 let tStartY = null;
-                box.addEventListener('touchstart', (e) => {{ tStartY = e.touches[0].clientY; }}, {{ passive: true }});
-                box.addEventListener('touchend', (e) => {{
+                box.addEventListener('touchstart', (e) => { tStartY = e.touches[0].clientY; }, { passive: true });
+                box.addEventListener('touchend', (e) => {
                     if (tStartY === null) return;
                     const d = tStartY - e.changedTouches[0].clientY;
                     tStartY = null;
-                    if (Math.abs(d) > 25) {{
+                    if (Math.abs(d) > 25) {
                         step(d > 0 ? 1 : -1);
                         resetAuto(5500);
-                    }}
-                }}, {{ passive: true });
+                    }
+                }, { passive: true });
 
                 layout();
                 if (window.__wfTestiInterval) clearInterval(window.__wfTestiInterval);
                 autoTimer = setInterval(() => step(1), 3400);
                 window.__wfTestiInterval = autoTimer;
-            }}
+            }
 
             requestAnimationFrame(initTestimonials);
-        }})();
+        })();
         </script>
-        """,
-        unsafe_allow_javascript=True,
-    )
+    """.replace("__CARDS_MARKUP__", cards_markup)
+
+    st.html(testimonials_html, unsafe_allow_javascript=True)
 
     # 5. Review Section
     render_review_section(standalone=False)
