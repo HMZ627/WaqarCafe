@@ -10,32 +10,33 @@ GLOBAL_CSS = """
     --wf-cream-muted: #CFC4B4;
     --wf-gold: #D4AF37;
     --wf-gold-bright: #F0CA5A;
-    --wf-border: rgba(212, 175, 55, 0.24);
+    --wf-border: rgba(212, 175, 55, 0.26);
 }
 
-/* Hide Streamlit default chrome for a clean website feel */
+/* Hide Streamlit chrome */
 #MainMenu, header[data-testid="stHeader"], footer, [data-testid="stToolbar"] {
     visibility: hidden !important;
     height: 0 !important;
 }
 
-.stApp, [data-testid="stAppViewContainer"] {
+html, body, .stApp, [data-testid="stAppViewContainer"] {
     background-color: var(--wf-bg) !important;
     color: var(--wf-cream) !important;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
+    overflow-x: hidden !important;
 }
 
 .block-container {
-    padding-top: 1.1rem !important;
-    padding-bottom: 3rem !important;
-    max-width: 1220px !important;
+    padding-top: 1rem !important;
+    padding-bottom: 3.5rem !important;
+    max-width: 1240px !important;
 }
 
-/* Blur-in reveal animation triggered after intro video fades out */
+/* Website-wide Fade-In-Blur-In Reveal */
 @keyframes wfBlurReveal {
     0% {
         opacity: 0;
-        filter: blur(20px);
+        filter: blur(22px);
         transform: scale(1.015);
     }
     100% {
@@ -45,58 +46,58 @@ GLOBAL_CSS = """
     }
 }
 
-.wf-blur-in {
+[data-testid="stAppViewContainer"], .wf-blur-in {
     animation: wfBlurReveal 1.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Brand & Toolbar */
+/* Upper-Left Brand & Larger Logo */
 .wf-brand-wrap {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
 }
 
 .wf-brand-logo {
-    height: 46px;
+    height: 82px;
     width: auto;
     object-fit: contain;
-    border-radius: 10px;
+    border-radius: 14px;
+    filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.6));
 }
 
 .wf-brand-name {
     font-family: 'Lobster', cursive !important;
-    font-size: 2rem !important;
+    font-size: 2.3rem !important;
     color: var(--wf-gold) !important;
-    letter-spacing: 0.5px;
-    line-height: 1.1;
-    text-shadow: 0 2px 14px rgba(212, 175, 55, 0.25);
+    letter-spacing: 0.6px;
+    line-height: 1.05;
+    text-shadow: 0 2px 16px rgba(212, 175, 55, 0.28);
     white-space: nowrap;
 }
 
-/* Buttons styled in Charcoal Black & Warm Gold */
-div.stButton > button,
-div[data-testid="stPopover"] > button {
+/* Standard Navigation & Action Buttons */
+div.stButton > button {
     background: linear-gradient(135deg, #1E1C18, #161512) !important;
     color: var(--wf-cream) !important;
     border: 1px solid var(--wf-border) !important;
     border-radius: 999px !important;
-    padding: 0.5rem 1.2rem !important;
+    padding: 0.52rem 1.25rem !important;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
     font-weight: 600 !important;
     transition: all 0.25s ease !important;
 }
 
-div.stButton > button:hover,
-div[data-testid="stPopover"] > button:hover {
+div.stButton > button:hover {
     border-color: var(--wf-gold) !important;
     color: var(--wf-gold-bright) !important;
-    box-shadow: 0 0 18px rgba(212, 175, 55, 0.22) !important;
+    box-shadow: 0 0 18px rgba(212, 175, 55, 0.24) !important;
     transform: translateY(-1px);
 }
 
-/* Primary Warm Gold CTA Buttons */
+/* Primary Warm Gold Buttons */
 div.stButton > button[kind="primary"],
-div.stFormSubmitButton > button {
+div.stFormSubmitButton > button,
+.st-key-basket_order_btn button {
     background: linear-gradient(135deg, #D4AF37, #B88E24) !important;
     color: #121212 !important;
     border: none !important;
@@ -107,17 +108,111 @@ div.stFormSubmitButton > button {
 }
 
 div.stButton > button[kind="primary"]:hover,
-div.stFormSubmitButton > button:hover {
+div.stFormSubmitButton > button:hover,
+.st-key-basket_order_btn button:hover {
     background: linear-gradient(135deg, #ECC95B, #D4AF37) !important;
     color: #0D0D0D !important;
     box-shadow: 0 8px 26px rgba(212, 175, 55, 0.42) !important;
+}
+
+/* Top-Right Bag Icon + Overlapping Item Count Badge */
+.st-key-bag_popover {
+    display: flex !important;
+    justify-content: flex-end !important;
+}
+
+.st-key-bag_popover button {
+    position: relative !important;
+    width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 0 !important;
+    border-radius: 15px !important;
+    background: linear-gradient(135deg, #211F1A, #151411) !important;
+    border: 1px solid rgba(212, 175, 55, 0.48) !important;
+    overflow: visible !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.25s ease !important;
+}
+
+.st-key-bag_popover button:hover {
+    border-color: #F0CA5A !important;
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.28) !important;
+    transform: translateY(-1px);
+}
+
+.st-key-bag_popover button::before {
+    content: "";
+    width: 24px;
+    height: 24px;
+    display: block;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F5EFE6' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 7h12l1 13H5L6 7z'/%3E%3Cpath d='M9 7V5a3 3 0 0 1 6 0v2'/%3E%3C/svg%3E");
+}
+
+.st-key-bag_popover button svg {
+    display: none !important;
+}
+
+.st-key-bag_popover button [data-testid="stMarkdownContainer"],
+.st-key-bag_popover button p {
+    position: absolute !important;
+    top: -7px !important;
+    right: -7px !important;
+    margin: 0 !important;
+    padding: 0 5px !important;
+    min-width: 22px !important;
+    height: 22px !important;
+    line-height: 20px !important;
+    border-radius: 999px !important;
+    background: #D4AF37 !important;
+    color: #121212 !important;
+    font-size: 0.76rem !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    border: 2px solid #121212 !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.7) !important;
+    pointer-events: none !important;
+}
+
+/* Popover Body & Fix for '+' / '-' Buttons Visibility */
+div[data-testid="stPopoverBody"] {
+    min-width: 350px !important;
+    background: #181714 !important;
+    border: 1px solid rgba(212, 175, 55, 0.38) !important;
+    border-radius: 18px !important;
+    color: var(--wf-cream) !important;
+}
+
+div[data-testid="stPopoverBody"] div.stButton > button {
+    padding: 0.25rem 0.5rem !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    border-radius: 10px !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+div[data-testid="stPopoverBody"] .st-key-basket_order_btn button {
+    padding: 0.6rem 1.2rem !important;
+    min-height: 42px !important;
+    border-radius: 999px !important;
+    font-size: 0.98rem !important;
 }
 
 /* Divider */
 .wf-nav-divider {
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.45), transparent);
-    margin: 0.65rem 0 1.4rem 0;
+    margin: 0.55rem 0 1.2rem 0;
 }
 
 /* Section Headers */
@@ -163,7 +258,7 @@ div.stFormSubmitButton > button:hover {
     font-size: 1.65rem;
     font-weight: 700;
     color: var(--wf-cream);
-    margin: 0.6rem 0 0.25rem 0;
+    margin: 0.7rem 0 0.3rem 0;
 }
 
 .wf-menu-price {
@@ -175,7 +270,7 @@ div.stFormSubmitButton > button:hover {
     font-size: 1.05rem;
     padding: 0.25rem 0.85rem;
     border-radius: 999px;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.65rem;
 }
 
 .wf-menu-desc {
@@ -188,15 +283,18 @@ div.stFormSubmitButton > button:hover {
 .wf-menu-placeholder {
     height: 220px;
     border-radius: 14px;
-    background: radial-gradient(circle at 50% 35%, rgba(212, 175, 55, 0.22), #101010 75%);
-    border: 1px dashed rgba(212, 175, 55, 0.3);
+    background: radial-gradient(circle at 50% 35%, rgba(212, 175, 55, 0.16), #101010 75%);
+    border: 1px dashed rgba(212, 175, 55, 0.35);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 4.5rem;
+    font-family: 'Lobster', cursive;
+    font-size: 2rem;
+    color: var(--wf-gold);
+    letter-spacing: 1px;
 }
 
-/* Inputs & Modals */
+/* Inputs, TextAreas & Alerts */
 textarea, input[type="text"] {
     background-color: #191815 !important;
     color: var(--wf-cream) !important;
@@ -207,6 +305,11 @@ textarea, input[type="text"] {
 textarea:focus, input[type="text"]:focus {
     border-color: var(--wf-gold) !important;
     box-shadow: 0 0 0 1px var(--wf-gold) !important;
+}
+
+div[data-testid="stAlert"] {
+    border-radius: 14px !important;
+    border: 1px solid rgba(212, 175, 55, 0.45) !important;
 }
 
 .wf-jazzcash-box {
