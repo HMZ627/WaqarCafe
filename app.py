@@ -17,11 +17,13 @@ from utils.webhooks import (
 )
 
 # -----------------------------------------------------------------------------
-# Page Config & Initialization
+# Page Config & Initialization (Zero Emojis)
 # -----------------------------------------------------------------------------
+logo_page_icon = "static/Logo.png" if Path("static/Logo.png").exists() else None
+
 st.set_page_config(
     page_title="Waqar Foodies | Flavour After Darkness",
-    page_icon="🍔",
+    page_icon=logo_page_icon,
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -34,7 +36,6 @@ MENU_ITEMS = {
         "name": "Tower Burger",
         "price": 500,
         "image": "static/tower_burger.png",
-        "emoji": "🍔",
         "desc": "Charcoal-seared double beef patty, melted aged cheddar, crisp greens, pickles, and signature burger sauce on toasted sesame brioche.",
     },
     "paratha_roll": {
@@ -42,7 +43,6 @@ MENU_ITEMS = {
         "name": "Chicken Paratha Roll",
         "price": 350,
         "image": "static/paratha_roll.png",
-        "emoji": "🌯",
         "desc": "Flaky golden-crisped paratha wrapped around smoky chargrilled chicken tikka, pickled red onions, and signature mint-garlic crema.",
     },
 }
@@ -94,15 +94,17 @@ def get_cart_summary() -> tuple[list[dict], int, int]:
 def show_checkout_dialog():
     cart_items, _, grand_total = get_cart_summary()
     if not cart_items:
-        st.warning("Your basket is empty. Add an item from the Menu first!")
+        st.warning("Your order bag is empty. Please add an item from the Menu first.")
         if st.button("Go to Menu", type="primary"):
             st.session_state.page = "Menu"
             st.rerun()
         return
 
-    st.markdown("#### 🧾 Order Summary")
+    top_alert = st.empty()
+
+    st.markdown("#### Order Summary")
     for item in cart_items:
-        st.write(f"• **{item['name']}** × {item['qty']} — `PKR {item['price'] * item['qty']:,}/-`")
+        st.write(f"• **{item['name']}** x {item['qty']} — `PKR {item['price'] * item['qty']:,}/-`")
     st.markdown(f"**Grand Total:** :orange[**PKR {grand_total:,}/-**]")
     st.divider()
 
@@ -141,7 +143,7 @@ def show_checkout_dialog():
         st.html(
             f"""
             <div class="wf-jazzcash-box">
-                <div style="font-weight:700; color:#F0CA5A; margin-bottom:4px;">📱 JazzCash Transfer Details</div>
+                <div style="font-weight:700; color:#F0CA5A; margin-bottom:4px;">JazzCash Transfer Details</div>
                 <div>Account Number: <strong style="font-size:1.1rem; letter-spacing:1px;">{jc_number}</strong></div>
                 <div>Account Title: <strong>{jc_title}</strong></div>
                 <div style="font-size:0.86rem; color:#CFC4B4; margin-top:6px;">
@@ -162,33 +164,41 @@ def show_checkout_dialog():
         help="Keeps your name, address, and phone only inside your private browser session.",
     )
 
-    if st.button("Confirm Order", type="primary", use_container_width=True):
-        allowed, wait_sec = check_rate_limit("order_submit", cooldown_seconds=20)
-        if not allowed:
-            st.error(f"Please wait {wait_sec}s before placing another order.")
-            return
+    bottom_alert = st.empty()
 
+    if st.button("Confirm Order", type="primary", use_container_width=True):
         clean_name = sanitize_text(name_input, max_len=80)
         clean_addr = sanitize_text(address_input, max_len=250)
         valid_phone, clean_phone = validate_phone(phone_input)
 
+        missing_errors = []
         if len(clean_name) < 2:
-            st.error("Please enter a valid name.")
-            return
+            missing_errors.append("Full Name is required.")
         if len(clean_addr) < 8:
-            st.error("Please enter a complete delivery address.")
-            return
+            missing_errors.append("Complete Delivery Address is required.")
         if not valid_phone:
-            st.error("Please enter a valid phone number (e.g. 03001234567).")
-            return
+            missing_errors.append("Valid Phone Number is required (e.g. 03001234567).")
 
         receipt_bytes = None
         receipt_name = None
         if payment_method == "Online (JazzCash)":
             ok_img, receipt_bytes, receipt_name, img_err = validate_and_clean_receipt(uploaded_receipt)
             if not ok_img:
-                st.error(img_err)
-                return
+                missing_errors.append(img_err)
+
+        if missing_errors:
+            warning_msg = "**Please complete all required order details:**\n\n" + "\n".join(
+                f"- {err}" for err in missing_errors
+            )
+            top_alert.error(warning_msg)
+            bottom_alert.error(warning_msg)
+            st.toast("Please fill in all crucial order details.")
+            return
+
+        allowed, wait_sec = check_rate_limit("order_submit", cooldown_seconds=20)
+        if not allowed:
+            bottom_alert.warning(f"Please wait {wait_sec}s before placing another order.")
+            return
 
         order_id = generate_order_id()
 
@@ -206,7 +216,7 @@ def show_checkout_dialog():
             )
 
         if not sent:
-            st.error("Unable to submit order right now. Please try again shortly.")
+            bottom_alert.error("Unable to submit order right now. Please try again shortly.")
             return
 
         if save_details:
@@ -223,21 +233,22 @@ def show_checkout_dialog():
         st.rerun()
 
 
-@st.dialog("Order Confirmed!")
+@st.dialog("Order Confirmed")
 def show_confirmation_dialog(order_id: str):
     st.html(
         f"""
         <div style="text-align:center;">
-            <div style="font-size:2.6rem;">✨🍔✨</div>
-            <div style="color:#CFC4B4; margin-top:4px;">Your Order ID is</div>
+            <div style="color:#CFC4B4; margin-top:4px; font-size:0.95rem; letter-spacing:1px; text-transform:uppercase;">
+                Your Order ID
+            </div>
             <div class="wf-order-id-box">
                 <div class="wf-order-id-code" id="wf-order-id-text">{order_id}</div>
             </div>
             <button id="wf-copy-btn"
                 style="background:linear-gradient(135deg,#D4AF37,#B88E24); color:#121212;
-                       border:none; border-radius:999px; padding:8px 20px; font-weight:700;
+                       border:none; border-radius:999px; padding:8px 22px; font-weight:700;
                        cursor:pointer; margin-bottom:12px;">
-                📋 Copy Order ID
+                Copy Order ID
             </button>
             <div id="wf-copy-status" style="font-size:0.85rem; color:#D4AF37; min-height:20px;"></div>
             <p style="color:#F5EFE6; font-size:1.02rem; margin-top:10px; font-weight:500;">
@@ -252,7 +263,7 @@ def show_confirmation_dialog(order_id: str):
                     await navigator.clipboard.writeText("{order_id}");
                     document.getElementById('wf-copy-status').textContent = "Copied to clipboard!";
                 }} catch (e) {{
-                    document.getElementById('wf-copy-status').textContent = "Select & copy the ID above.";
+                    document.getElementById('wf-copy-status').textContent = "Select and copy the ID above.";
                 }}
             }});
         }}
@@ -274,13 +285,13 @@ elif st.session_state.open_checkout_modal:
 
 
 # -----------------------------------------------------------------------------
-# Top Toolbar (Logo Left + Menu / Review / Report a bug + Top-Right Basket)
+# Top Toolbar (Larger Logo Left + Menu / Review / Report a bug + Bag Icon)
 # -----------------------------------------------------------------------------
 def render_navbar():
     cart_items, total_qty, grand_total = get_cart_summary()
 
-    col_brand, col_menu, col_review, col_bug, col_basket = st.columns(
-        [2.6, 1.0, 1.0, 1.3, 1.4], vertical_alignment="center"
+    col_brand, col_menu, col_review, col_bug, col_bag = st.columns(
+        [3.1, 0.9, 0.9, 1.25, 0.65], vertical_alignment="center"
     )
 
     with col_brand:
@@ -288,9 +299,9 @@ def render_navbar():
         logo_html = (
             '<img src="./app/static/Logo.png" class="wf-brand-logo" alt="Waqar Foodies Logo" />'
             if logo_exists
-            else '<span style="font-size:1.8rem;">🔥</span>'
+            else ""
         )
-        c_logo, c_home = st.columns([3.5, 1.2], vertical_alignment="center")
+        c_logo, c_home = st.columns([3.4, 1.0], vertical_alignment="center")
         with c_logo:
             st.html(
                 f"""
@@ -335,20 +346,19 @@ def render_navbar():
             st.session_state.page = "Bug"
             st.rerun()
 
-    with col_basket:
-        basket_label = f"🛒 Basket ({total_qty})"
-        with st.popover(basket_label, use_container_width=True):
-            st.markdown("### 🛒 Your Basket")
+    with col_bag:
+        with st.popover(str(total_qty), key="bag_popover", help="Your Order Bag"):
+            st.markdown("#### Your Order")
             if not cart_items:
-                st.caption("Your basket is currently empty.")
+                st.caption("No items added yet.")
             else:
                 for item in cart_items:
-                    r1, r2, r3, r4 = st.columns([2.5, 0.7, 0.7, 1.4], vertical_alignment="center")
+                    r1, r2, r3, r4 = st.columns([2.3, 0.85, 0.85, 1.2], vertical_alignment="center")
                     with r1:
                         st.markdown(f"**{item['name']}**")
-                        st.caption(f"PKR {item['price']:,} × {item['qty']}")
+                        st.caption(f"PKR {item['price']:,} x {item['qty']}")
                     with r2:
-                        if st.button("−", key=f"dec_{item['id']}"):
+                        if st.button("-", key=f"dec_{item['id']}"):
                             update_cart_qty(item["id"], -1)
                             st.rerun()
                     with r3:
@@ -359,7 +369,7 @@ def render_navbar():
                         st.markdown(f"**{item['price'] * item['qty']:,}**")
 
                 st.divider()
-                st.markdown(f"#### Grand Total: :orange[PKR {grand_total:,}/-]")
+                st.markdown(f"**Grand Total:** :orange[**PKR {grand_total:,}/-**]")
                 if st.button("Order", key="basket_order_btn", type="primary", use_container_width=True):
                     st.session_state.open_checkout_modal = True
                     st.rerun()
@@ -373,7 +383,7 @@ def render_navbar():
 def render_review_section(standalone: bool = False):
     st.html(
         """
-        <div style="margin-top: 2.5rem;">
+        <div class="wf-blur-in" style="margin-top: 2.5rem;">
             <h2 class="wf-section-title">Leave a <span>Review</span></h2>
             <p class="wf-section-sub">Loved the crunch, smoke, and warmth? Tell us how your experience tasted.</p>
         </div>
@@ -398,10 +408,6 @@ def render_review_section(standalone: bool = False):
                 key=f"rev_text_{standalone}",
             )
             if st.button("Submit", key=f"rev_submit_{standalone}", type="primary", use_container_width=True):
-                allowed, wait_sec = check_rate_limit("review_submit", cooldown_seconds=15)
-                if not allowed:
-                    st.warning(f"Please wait {wait_sec}s before submitting another review.")
-                    return
                 if rating_idx is None:
                     st.error("Please select a star rating (1 to 5 stars).")
                     return
@@ -411,11 +417,16 @@ def render_review_section(standalone: bool = False):
                     st.error("Please write at least a few words in your review.")
                     return
 
+                allowed, wait_sec = check_rate_limit("review_submit", cooldown_seconds=15)
+                if not allowed:
+                    st.warning(f"Please wait {wait_sec}s before submitting another review.")
+                    return
+
                 stars = rating_idx + 1
                 with st.spinner("Submitting review..."):
                     ok = send_review_webhook(stars=stars, review_text=clean_rev, reviewer_name=clean_name)
                 if ok:
-                    st.success("Thank you! Your review has been sent to Waqar Foodies.")
+                    st.success("Thank you. Your review has been sent to Waqar Foodies.")
                 else:
                     st.error("Could not send review right now. Please try again shortly.")
 
@@ -423,7 +434,7 @@ def render_review_section(standalone: bool = False):
 def render_bug_page():
     st.html(
         """
-        <div style="margin-top: 1.5rem;">
+        <div class="wf-blur-in" style="margin-top: 1.5rem;">
             <h2 class="wf-section-title">Report a <span>Bug</span></h2>
             <p class="wf-section-sub">Spotted an issue on our website? Let us know and we will fix it right away.</p>
         </div>
@@ -446,20 +457,21 @@ def render_bug_page():
                 key="bug_text",
             )
             if st.button("Submit", key="bug_submit", type="primary", use_container_width=True):
-                allowed, wait_sec = check_rate_limit("bug_submit", cooldown_seconds=15)
-                if not allowed:
-                    st.warning(f"Please wait {wait_sec}s before submitting another report.")
-                    return
                 clean_bug = sanitize_text(bug_text, max_len=1000)
                 clean_name = sanitize_text(reporter_name, max_len=60) or "Anonymous"
                 if len(clean_bug) < 8:
                     st.error("Please provide a clear description of the bug.")
                     return
 
+                allowed, wait_sec = check_rate_limit("bug_submit", cooldown_seconds=15)
+                if not allowed:
+                    st.warning(f"Please wait {wait_sec}s before submitting another report.")
+                    return
+
                 with st.spinner("Sending bug report..."):
                     ok = send_bug_webhook(bug_text=clean_bug, reporter_name=clean_name)
                 if ok:
-                    st.success("Bug report received! Thank you for helping improve Waqar Foodies.")
+                    st.success("Bug report received. Thank you for helping improve Waqar Foodies.")
                 else:
                     st.error("Could not send bug report right now. Please try again later.")
 
@@ -470,7 +482,7 @@ def render_bug_page():
 def render_menu_page():
     st.html(
         """
-        <div>
+        <div class="wf-blur-in">
             <h2 class="wf-section-title">Our <span>Signature</span> Menu</h2>
             <p class="wf-section-sub">Handcrafted fresh after sundown. Choose your cravings below.</p>
         </div>
@@ -486,11 +498,11 @@ def render_menu_page():
                 img_html = (
                     f'<img src="./app/{item["image"]}" style="width:100%; height:230px; object-fit:cover; border-radius:14px;" alt="{item["name"]}"/>'
                     if img_path.exists()
-                    else f'<div class="wf-menu-placeholder">{item["emoji"]}</div>'
+                    else f'<div class="wf-menu-placeholder">{item["name"]}</div>'
                 )
                 st.html(
                     f"""
-                    <div class="wf-menu-card">
+                    <div class="wf-menu-card wf-blur-in">
                         {img_html}
                         <div class="wf-menu-title">{item['name']}</div>
                         <div class="wf-menu-price">{item['price']}/- PKR</div>
@@ -508,15 +520,15 @@ def render_menu_page():
                 with b2:
                     if st.button("Add to Order", key=f"add_order_{item_key}", use_container_width=True):
                         add_to_cart(item_key, 1)
-                        st.toast(f"Added {item['name']} to your basket!", icon="🛒")
+                        st.toast(f"Added {item['name']} to your order.")
                         st.rerun()
 
 
 # -----------------------------------------------------------------------------
-# Home Page (Intro Overlay -> Blur-In -> Hero -> Scroll Video -> Testimonials -> Review)
+# Home Page
 # -----------------------------------------------------------------------------
 def render_home_page():
-    # 1. Intro Video Fade-In / Fade-Out + Page Blur-In
+    # 1. Intro Fade-In / Fade-Out Overlay -> Triggers Main Page Fade-In-Blur-In
     st.html(
         """
         <style>
@@ -531,8 +543,9 @@ def render_home_page():
             opacity: 1;
             transition: opacity 1s ease;
         }
-        #wf-intro-overlay.wf-hidden {
+        #wf-intro-overlay.wf-removed {
             display: none !important;
+            pointer-events: none !important;
         }
         #wf-intro-video {
             width: 100%;
@@ -545,12 +558,13 @@ def render_home_page():
             position: absolute;
             bottom: 32px;
             right: 32px;
-            background: rgba(18, 18, 18, 0.75);
+            background: rgba(18, 18, 18, 0.72);
             color: #F5EFE6;
-            border: 1px solid rgba(212, 175, 55, 0.5);
+            border: 1px solid rgba(212, 175, 55, 0.45);
             border-radius: 999px;
-            padding: 8px 18px;
+            padding: 8px 20px;
             font-weight: 600;
+            font-size: 0.85rem;
             cursor: pointer;
             z-index: 2;
         }
@@ -560,11 +574,11 @@ def render_home_page():
         }
         </style>
 
-        <div id="wf-intro-overlay" class="wf-hidden">
+        <div id="wf-intro-overlay">
             <video id="wf-intro-video" autoplay muted playsinline preload="auto">
                 <source src="./app/static/intro.mp4" type="video/mp4" />
             </video>
-            <button id="wf-intro-skip" type="button">Skip Intro →</button>
+            <button id="wf-intro-skip" type="button">Skip</button>
         </div>
 
         <script>
@@ -574,58 +588,88 @@ def render_home_page():
             const skipBtn = document.getElementById('wf-intro-skip');
             const appRoot = document.querySelector('[data-testid="stAppViewContainer"]');
 
-            if (sessionStorage.getItem('wf_intro_done') === '1') {
+            if (window.__wfIntroDone) {
+                if (overlay) overlay.classList.add('wf-removed');
                 return;
             }
 
-            overlay.classList.remove('wf-hidden');
             let finished = false;
 
             function finishIntro() {
                 if (finished) return;
                 finished = true;
-                sessionStorage.setItem('wf_intro_done', '1');
+                window.__wfIntroDone = true;
                 overlay.style.opacity = '0';
+
                 if (appRoot) {
+                    appRoot.classList.remove('wf-blur-in');
+                    void appRoot.offsetWidth;
                     appRoot.classList.add('wf-blur-in');
                 }
+
                 setTimeout(() => {
-                    overlay.classList.add('wf-hidden');
+                    overlay.classList.add('wf-removed');
                 }, 1050);
             }
 
-            vid.addEventListener('canplay', () => {
+            function startPlayback() {
+                vid.muted = true;
                 vid.style.opacity = '1';
-                vid.play().catch(() => finishIntro());
-            });
+                const playPromise = vid.play();
+                if (playPromise && typeof playPromise.catch === 'function') {
+                    playPromise.catch(() => {
+                        setTimeout(() => {
+                            if (vid.paused && !finished) finishIntro();
+                        }, 1200);
+                    });
+                }
+            }
+
+            vid.addEventListener('loadeddata', startPlayback);
+            vid.addEventListener('canplay', startPlayback);
 
             vid.addEventListener('timeupdate', () => {
-                if (vid.duration && vid.duration - vid.currentTime <= 0.9) {
+                if (vid.duration && vid.duration - vid.currentTime <= 0.85) {
                     finishIntro();
                 }
             });
 
             vid.addEventListener('ended', finishIntro);
             vid.addEventListener('error', finishIntro);
+
+            const sourceEl = vid.querySelector('source');
+            if (sourceEl) {
+                sourceEl.addEventListener('error', finishIntro);
+            }
+
             skipBtn.addEventListener('click', finishIntro);
 
+            vid.load();
             setTimeout(() => {
-                if (vid.readyState < 2) finishIntro();
-                else vid.style.opacity = '1';
-            }, 2500);
+                if (!finished && vid.readyState === 0) {
+                    finishIntro();
+                } else if (!finished && vid.paused) {
+                    startPlayback();
+                }
+            }, 4500);
         })();
         </script>
         """,
         unsafe_allow_javascript=True,
     )
 
-    # 2. Stylish Hero Header: "Flavour, that comes Alive After Darkness"
+    # 2. Hero Header
     st.html(
         """
         <style>
         .wf-hero {
             text-align: center;
-            padding: 1.8rem 1rem 2.4rem 1rem;
+            padding: 2.2rem 1rem 3.2rem 1rem;
+            min-height: 52vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
         .wf-hero-kicker {
             display: inline-block;
@@ -633,47 +677,54 @@ def render_home_page():
             border: 1px solid rgba(212, 175, 55, 0.35);
             background: rgba(212, 175, 55, 0.08);
             border-radius: 999px;
-            padding: 0.3rem 1rem;
-            font-size: 0.82rem;
-            letter-spacing: 2px;
+            padding: 0.32rem 1.15rem;
+            font-size: 0.8rem;
+            letter-spacing: 2.2px;
             text-transform: uppercase;
-            margin-bottom: 1.1rem;
+            margin-bottom: 1.3rem;
         }
         .wf-hero-heading {
             font-family: 'Playfair Display', serif;
             color: #F5EFE6;
-            line-height: 1.15;
+            line-height: 1.18;
             margin: 0 auto;
-            max-width: 920px;
+            max-width: 960px;
         }
         .wf-w-flavour {
             font-family: 'Lobster', cursive;
-            font-size: clamp(3.2rem, 6.5vw, 5.4rem);
+            font-size: clamp(3.4rem, 7vw, 5.8rem);
             color: #D4AF37;
-            text-shadow: 0 4px 24px rgba(212, 175, 55, 0.35);
+            text-shadow: 0 4px 26px rgba(212, 175, 55, 0.35);
         }
         .wf-w-small {
-            font-size: clamp(1.3rem, 2.5vw, 2rem);
+            font-size: clamp(1.35rem, 2.6vw, 2.1rem);
             font-weight: 400;
             color: #E6DAC8;
             font-style: italic;
         }
         .wf-w-alive {
-            font-size: clamp(2.1rem, 4vw, 3.2rem);
+            font-size: clamp(2.2rem, 4.2vw, 3.4rem);
             font-weight: 800;
             color: #F5EFE6;
             letter-spacing: 1px;
         }
         .wf-w-darkness {
-            font-size: clamp(3.1rem, 6.2vw, 5.1rem);
+            font-size: clamp(3.2rem, 6.5vw, 5.4rem);
             font-weight: 900;
             background: linear-gradient(180deg, #FFF5DC 0%, #D4AF37 55%, #8C6A15 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0 6px 24px rgba(212, 175, 55, 0.25));
         }
+        .wf-hero-scroll-cue {
+            margin-top: 2.2rem;
+            font-size: 0.78rem;
+            letter-spacing: 2.4px;
+            text-transform: uppercase;
+            color: rgba(245, 239, 230, 0.45);
+        }
         </style>
-        <div class="wf-hero">
+        <div class="wf-hero wf-blur-in">
             <div class="wf-hero-kicker">Late-Night Artisan Cafe</div>
             <h1 class="wf-hero-heading">
                 <span class="wf-w-flavour">Flavour</span><span class="wf-w-small">, that comes</span>
@@ -681,283 +732,301 @@ def render_home_page():
                 <span class="wf-w-small">After </span>
                 <span class="wf-w-darkness">Darkness</span>
             </h1>
+            <div class="wf-hero-scroll-cue">Scroll Down to Experience</div>
         </div>
         """
     )
 
-    # 3. Scroll-Controlled Burger Video Animation (calibrated to 00:00 - 00:09 frames)
+    # 3. Full-Screen Seamless Scroll-Controlled Showcase
     st.html(
         """
         <style>
-        #wf-story-stage {
+        #wf-fullscreen-stage {
             position: relative;
-            border-radius: 26px;
-            border: 1px solid rgba(212, 175, 55, 0.28);
-            padding: 2.2rem;
-            min-height: 540px;
-            display: grid;
-            grid-template-columns: 1.15fr 1fr;
-            gap: 2rem;
-            align-items: center;
+            width: 100vw;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 100vh;
+            min-height: 620px;
             overflow: hidden;
-            transition: background 0.9s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.6s ease;
-            background: radial-gradient(circle at 24% 30%, #4A3514 0%, #16130E 74%);
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 50% 48%, #4A3514 0%, #14120D 68%, #0E0D0B 100%);
+            transition: background 1.1s cubic-bezier(0.22, 1, 0.36, 1);
         }
-        @media (max-width: 860px) {
-            #wf-story-stage {
-                grid-template-columns: 1fr;
-                padding: 1.4rem;
+
+        .wf-stage-visual-wrap {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        #wf-burger-canvas-video {
+            height: 100vh;
+            width: auto;
+            max-width: 100vw;
+            object-fit: contain;
+            -webkit-mask-image: radial-gradient(ellipse 52% 68% at 50% 50%, #000 54%, rgba(0,0,0,0.45) 78%, transparent 100%);
+            mask-image: radial-gradient(ellipse 52% 68% at 50% 50%, #000 54%, rgba(0,0,0,0.45) 78%, transparent 100%);
+            opacity: 0.96;
+        }
+
+        .wf-side-grid {
+            position: relative;
+            z-index: 4;
+            width: 100%;
+            max-width: 1380px;
+            padding: 0 3.5vw;
+            display: grid;
+            grid-template-columns: 1fr 1.15fr 1fr;
+            align-items: center;
+            gap: 2rem;
+            pointer-events: none;
+        }
+
+        .wf-side-left {
+            text-align: left;
+            padding: 1.2rem 1.4rem;
+            border-left: 2px solid rgba(212, 175, 55, 0.65);
+            background: linear-gradient(90deg, rgba(14, 13, 11, 0.65), transparent);
+            border-radius: 0 14px 14px 0;
+        }
+
+        .wf-side-right {
+            text-align: right;
+            padding: 1.2rem 1.4rem;
+            border-right: 2px solid rgba(212, 175, 55, 0.65);
+            background: linear-gradient(-90deg, rgba(14, 13, 11, 0.65), transparent);
+            border-radius: 14px 0 0 14px;
+        }
+
+        .wf-side-spacer {
+            min-height: 10px;
+        }
+
+        .wf-source-label {
+            font-size: 0.76rem;
+            letter-spacing: 2.2px;
+            text-transform: uppercase;
+            color: #D4AF37;
+            margin-bottom: 0.55rem;
+            font-weight: 600;
+        }
+
+        .wf-side-subheader {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.75rem, 2.8vw, 2.7rem);
+            color: #F5EFE6;
+            line-height: 1.18;
+            margin: 0;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
+        }
+
+        .wf-side-body {
+            color: #EAE0D2;
+            font-size: clamp(0.95rem, 1.25vw, 1.12rem);
+            line-height: 1.7;
+            margin: 0;
+            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
+        }
+
+        @keyframes wfTextBlurIn {
+            0% {
+                opacity: 0;
+                filter: blur(16px);
+                transform: translateY(14px);
+            }
+            100% {
+                opacity: 1;
+                filter: blur(0px);
+                transform: translateY(0);
             }
         }
-        .wf-video-frame {
-            position: relative;
-            border-radius: 18px;
-            overflow: hidden;
-            border: 1px solid rgba(212, 175, 55, 0.35);
-            background: #0B0B0B;
-            aspect-ratio: 1 / 1;
-            max-height: 480px;
-            margin: 0 auto;
-            width: 100%;
-            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6);
+
+        .wf-side-animate {
+            animation: wfTextBlurIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
-        #wf-burger-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
+
+        .wf-side-hidden {
+            opacity: 0;
+            filter: blur(14px);
         }
-        .wf-video-badge {
+
+        .wf-stage-progress {
             position: absolute;
-            top: 12px;
-            left: 12px;
-            background: rgba(18, 18, 18, 0.78);
-            border: 1px solid rgba(212, 175, 55, 0.4);
-            color: #F0CA5A;
-            padding: 4px 12px;
-            border-radius: 999px;
-            font-size: 0.76rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-        .wf-sound-btn {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(18, 18, 18, 0.78);
-            border: 1px solid rgba(212, 175, 55, 0.45);
-            color: #F5EFE6;
-            padding: 4px 11px;
-            border-radius: 999px;
-            font-size: 0.76rem;
-            cursor: pointer;
-            transition: all 0.25s ease;
-        }
-        .wf-sound-btn:hover {
-            border-color: #D4AF37;
-            color: #F0CA5A;
-        }
-        .wf-ingredient-panel {
+            right: 22px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 6;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            gap: 0.85rem;
-            transition: opacity 0.4s ease, transform 0.4s ease;
-        }
-        .wf-ingredient-panel.wf-fade {
-            opacity: 0.25;
-            transform: translateY(10px);
-        }
-        .wf-source-pill {
-            display: inline-block;
-            width: fit-content;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1.8px;
-            color: #D4AF37;
-            border-bottom: 1px solid rgba(212, 175, 55, 0.45);
-            padding-bottom: 4px;
-        }
-        .wf-ing-sub {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(1.7rem, 2.8vw, 2.35rem);
-            color: #F5EFE6;
-            margin: 0;
-            line-height: 1.2;
-        }
-        .wf-ing-body {
-            color: #D8CEC0;
-            font-size: 1.03rem;
-            line-height: 1.65;
-            margin: 0;
-        }
-        .wf-story-controls {
-            display: flex;
-            align-items: center;
             gap: 10px;
-            margin-top: 1rem;
-            flex-wrap: wrap;
         }
-        .wf-step-dot {
-            width: 11px;
-            height: 11px;
+
+        .wf-prog-dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: rgba(245, 239, 230, 0.22);
-            border: 1px solid rgba(212, 175, 55, 0.4);
+            background: rgba(245, 239, 230, 0.25);
+            border: 1px solid rgba(212, 175, 55, 0.45);
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .wf-step-dot.active {
-            width: 30px;
+
+        .wf-prog-dot.active {
+            height: 26px;
             border-radius: 999px;
             background: #D4AF37;
         }
-        .wf-step-btn {
-            background: rgba(212, 175, 55, 0.14);
-            color: #F0CA5A;
-            border: 1px solid rgba(212, 175, 55, 0.45);
-            border-radius: 999px;
-            padding: 6px 14px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .wf-step-btn:hover {
-            background: #D4AF37;
-            color: #121212;
-        }
-        .wf-scroll-hint {
-            font-size: 0.82rem;
-            color: #B5AA99;
-            margin-left: auto;
+
+        @media (max-width: 900px) {
+            .wf-side-grid {
+                grid-template-columns: 1fr;
+                height: 88vh;
+                align-content: space-between;
+                padding: 1.5rem 1.2rem;
+            }
+            .wf-side-spacer {
+                display: none;
+            }
+            .wf-side-left, .wf-side-right {
+                text-align: center;
+                border: none;
+                background: rgba(14, 13, 11, 0.62);
+                border-radius: 14px;
+            }
         }
         </style>
 
-        <div id="wf-story-stage">
-            <div class="wf-video-frame">
-                <video id="wf-burger-video" muted playsinline preload="auto">
+        <div id="wf-fullscreen-stage">
+            <div class="wf-stage-visual-wrap">
+                <video id="wf-burger-canvas-video" muted playsinline preload="auto">
                     <source src="./app/static/burger_prep.mp4" type="video/mp4" />
                 </video>
-                <div class="wf-video-badge" id="wf-step-badge">Chapter 1 / 5</div>
-                <button class="wf-sound-btn" id="wf-sound-toggle" type="button">🔇 Muted</button>
             </div>
 
-            <div class="wf-ingredient-panel" id="wf-ing-panel">
-                <div class="wf-source-pill" id="wf-ing-source">Source: Sunlit Golden Wheat Fields</div>
-                <h2 class="wf-ing-sub" id="wf-ing-sub">Toasted Sesame Brioche Bun</h2>
-                <p class="wf-ing-body" id="wf-ing-body">
-                    Harvested from golden wheat fields and baked pillowy-soft with toasted sesame seeds, splitting open in a cloud of warm millstone mist.
-                </p>
+            <div class="wf-side-grid">
+                <div class="wf-side-left wf-side-animate" id="wf-left-text">
+                    <div class="wf-source-label" id="wf-ing-source">Sunlit Golden Wheat Fields</div>
+                    <h2 class="wf-side-subheader" id="wf-ing-sub">Toasted Sesame Brioche Bun</h2>
+                </div>
 
-                <div class="wf-story-controls">
-                    <div id="wf-dots" style="display:flex; gap:8px; align-items:center;"></div>
-                    <button class="wf-step-btn" id="wf-prev-step" type="button">← Prev</button>
-                    <button class="wf-step-btn" id="wf-next-step" type="button">Next Ingredient →</button>
-                    <span class="wf-scroll-hint" id="wf-scroll-hint">Scroll over stage to animate ↑↓</span>
+                <div class="wf-side-spacer"></div>
+
+                <div class="wf-side-right wf-side-animate" id="wf-right-text">
+                    <p class="wf-side-body" id="wf-ing-body">
+                        Harvested from golden wheat fields and baked pillowy-soft with toasted sesame seeds, splitting open in warm millstone mist.
+                    </p>
                 </div>
             </div>
+
+            <div class="wf-stage-progress" id="wf-stage-dots"></div>
         </div>
 
         <script>
         (function() {
-            const stage = document.getElementById('wf-story-stage');
-            const video = document.getElementById('wf-burger-video');
-            const panel = document.getElementById('wf-ing-panel');
+            const stage = document.getElementById('wf-fullscreen-stage');
+            const video = document.getElementById('wf-burger-canvas-video');
+            const leftBox = document.getElementById('wf-left-text');
+            const rightBox = document.getElementById('wf-right-text');
             const sourceEl = document.getElementById('wf-ing-source');
             const subEl = document.getElementById('wf-ing-sub');
             const bodyEl = document.getElementById('wf-ing-body');
-            const badgeEl = document.getElementById('wf-step-badge');
-            const dotsEl = document.getElementById('wf-dots');
-            const hintEl = document.getElementById('wf-scroll-hint');
-            const soundBtn = document.getElementById('wf-sound-toggle');
+            const dotsWrap = document.getElementById('wf-stage-dots');
+
+            if (!stage || !video) return;
 
             const sections = [
                 {
-                    pct: 0.00, // 00:00 - 00:01 (Wheat field & sesame bun in flour mist)
-                    source: "Source: Sunlit Golden Wheat Fields",
+                    pct: 0.00,
+                    source: "Sunlit Golden Wheat Fields",
                     sub: "Toasted Sesame Brioche Bun",
-                    body: "Harvested from golden wheat fields and baked pillowy-soft with toasted sesame seeds, splitting open in a cloud of warm millstone mist.",
-                    bg: "radial-gradient(circle at 24% 30%, #4A3514 0%, #16130E 74%)"
+                    body: "Harvested from golden wheat fields and baked pillowy-soft with toasted sesame seeds, splitting open in warm millstone mist.",
+                    bg: "radial-gradient(circle at 50% 48%, #4F3814 0%, #17130D 65%, #0D0C0A 100%)"
                 },
                 {
-                    pct: 0.23, // ~00:02 (Organic garden soil, lettuce, red tomatoes & onion rings)
-                    source: "Source: Morning Dew Vegetable Farms",
+                    pct: 0.23,
+                    source: "Morning Dew Vegetable Farms",
                     sub: "Crisp Lettuce, Vine Tomatoes & Red Onions",
                     body: "Dew-fresh emerald lettuce, sun-ripened tomato slices, and sharp purple onion rings cascading straight from fertile garden soil.",
-                    bg: "radial-gradient(circle at 25% 32%, #133620 0%, #0F1410 74%)"
+                    bg: "radial-gradient(circle at 50% 48%, #153D23 0%, #0E1711 65%, #0B0E0C 100%)"
                 },
                 {
-                    pct: 0.43, // ~00:03 - 00:04 (Cow pastures, milk splash & double cheddar + pickles)
-                    source: "Source: Lush Green Dairy Pastures",
+                    pct: 0.43,
+                    source: "Lush Green Dairy Pastures",
                     sub: "Creamy Double Cheddar & Crisp Pickles",
-                    body: "Wholesome pasture milk churned into two rich, velvety cheddar slices, layered generously over tangy dill pickles and fresh greens.",
-                    bg: "radial-gradient(circle at 28% 30%, #263818 0%, #15140F 74%)"
+                    body: "Wholesome pasture milk churned into two rich, velvety cheddar slices, layered generously over tangy dill pickles and greens.",
+                    bg: "radial-gradient(circle at 50% 48%, #2E3F19 0%, #15170F 65%, #0C0D0A 100%)"
                 },
                 {
-                    pct: 0.64, // ~00:05 - 00:06 (Twilight fire pit & sizzling double beef patties)
-                    source: "Source: Twilight Wood-Fired Grill",
+                    pct: 0.64,
+                    source: "Twilight Wood-Fired Grill",
                     sub: "Double Charcoal-Seared Beef Patties",
                     body: "Two thick, hand-pressed beef patties seared at dusk over roaring hardwood flames—locking in smoky char and sizzling juices.",
-                    bg: "radial-gradient(circle at 26% 36%, #4A190E 0%, #130F0F 74%)"
+                    bg: "radial-gradient(circle at 50% 48%, #521A0E 0%, #180E0D 65%, #0D0A0A 100%)"
                 },
                 {
-                    pct: 0.98, // ~00:07 - 00:09 (Spice burst into final Tower Burger in glowing darkness)
-                    source: "Source: Waqar Foodies — After Darkness",
+                    pct: 0.98,
+                    source: "Waqar Foodies — After Darkness",
                     sub: "The Signature Double Tower Burger",
                     body: "Crowned with crushed peppercorns, signature house burger sauce, and warm golden bokeh—crafted to come alive after darkness.",
-                    bg: "radial-gradient(circle at 50% 45%, #30210B 0%, #100F0E 76%)"
+                    bg: "radial-gradient(circle at 50% 48%, #36240B 0%, #12100D 65%, #0A0A09 100%)"
                 }
             ];
 
             let currentStep = 0;
-            let isTransitioning = false;
+            let isBusy = false;
             let animFrame = null;
 
-            soundBtn.addEventListener('click', () => {
-                video.muted = !video.muted;
-                soundBtn.textContent = video.muted ? "🔇 Muted" : "🔊 Sound On";
-            });
-
+            dotsWrap.innerHTML = "";
             sections.forEach((_, idx) => {
                 const dot = document.createElement('div');
-                dot.className = 'wf-step-dot' + (idx === 0 ? ' active' : '');
+                dot.className = 'wf-prog-dot' + (idx === 0 ? ' active' : '');
                 dot.addEventListener('click', () => {
-                    if (!isTransitioning) goToStep(idx);
+                    if (!isBusy) goToStep(idx);
                 });
-                dotsEl.appendChild(dot);
+                dotsWrap.appendChild(dot);
             });
 
-            function updateUI(stepIdx) {
+            function applySideText(stepIdx) {
                 const s = sections[stepIdx];
                 stage.style.background = s.bg;
-                badgeEl.textContent = `Chapter ${stepIdx + 1} / ${sections.length}`;
-                panel.classList.add('wf-fade');
+
+                Array.from(dotsWrap.children).forEach((d, i) => {
+                    d.classList.toggle('active', i === stepIdx);
+                });
+
+                leftBox.classList.remove('wf-side-animate');
+                rightBox.classList.remove('wf-side-animate');
+                leftBox.classList.add('wf-side-hidden');
+                rightBox.classList.add('wf-side-hidden');
+
                 setTimeout(() => {
                     sourceEl.textContent = s.source;
                     subEl.textContent = s.sub;
                     bodyEl.textContent = s.body;
-                    panel.classList.remove('wf-fade');
-                }, 180);
-
-                Array.from(dotsEl.children).forEach((d, i) => {
-                    d.classList.toggle('active', i === stepIdx);
-                });
-
-                hintEl.textContent = stepIdx === sections.length - 1
-                    ? "Video complete — scroll down to Order Now ↓"
-                    : "Scroll over stage to animate ↑↓";
+                    leftBox.classList.remove('wf-side-hidden');
+                    rightBox.classList.remove('wf-side-hidden');
+                    void leftBox.offsetWidth;
+                    leftBox.classList.add('wf-side-animate');
+                    rightBox.classList.add('wf-side-animate');
+                }, 140);
             }
 
             function easeInOutCubic(t) {
                 return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
             }
 
-            function animateVideoTo(targetPct) {
+            function playSegmentSlowly(targetPct) {
                 if (animFrame) cancelAnimationFrame(animFrame);
                 const duration = video.duration;
                 if (!duration || isNaN(duration)) {
-                    isTransitioning = false;
+                    isBusy = false;
                     return;
                 }
 
@@ -967,22 +1036,23 @@ def render_home_page():
 
                 if (Math.abs(distance) < 0.04) {
                     video.pause();
-                    isTransitioning = false;
+                    isBusy = false;
                     return;
                 }
 
-                const animDurationMs = Math.max(900, Math.min(1550, Math.abs(distance) * 520));
+                const animDurationMs = Math.max(1650, Math.min(2400, Math.abs(distance) * 950));
                 const startClock = performance.now();
                 const goingForward = distance > 0;
 
                 if (goingForward) {
+                    video.muted = true;
                     video.playbackRate = 0.35;
                     video.play().catch(() => {});
                 } else {
                     video.pause();
                 }
 
-                function step(now) {
+                function frame(now) {
                     const elapsed = now - startClock;
                     const progress = Math.min(1, elapsed / animDurationMs);
                     const eased = easeInOutCubic(progress);
@@ -990,12 +1060,12 @@ def render_home_page():
                     if (goingForward && !video.paused) {
                         const speedBell = Math.sin(progress * Math.PI);
                         const avgRate = distance / (animDurationMs / 1000);
-                        video.playbackRate = Math.min(2.6, Math.max(0.22, avgRate * (0.35 + 1.15 * speedBell)));
+                        video.playbackRate = Math.min(1.6, Math.max(0.22, avgRate * (0.35 + 1.05 * speedBell)));
 
                         if (progress >= 1 || video.currentTime >= endTime) {
                             video.pause();
                             video.currentTime = endTime;
-                            isTransitioning = false;
+                            isBusy = false;
                             return;
                         }
                     } else {
@@ -1003,56 +1073,88 @@ def render_home_page():
                         if (progress >= 1) {
                             video.pause();
                             video.currentTime = endTime;
-                            isTransitioning = false;
+                            isBusy = false;
                             return;
                         }
                     }
 
-                    animFrame = requestAnimationFrame(step);
+                    animFrame = requestAnimationFrame(frame);
                 }
 
-                animFrame = requestAnimationFrame(step);
+                animFrame = requestAnimationFrame(frame);
             }
 
             function goToStep(nextIdx) {
                 if (nextIdx < 0 || nextIdx >= sections.length || nextIdx === currentStep) return;
-                isTransitioning = true;
+                isBusy = true;
                 currentStep = nextIdx;
-                updateUI(currentStep);
-                animateVideoTo(sections[currentStep].pct);
-                setTimeout(() => { isTransitioning = false; }, 1150);
+                applySideText(currentStep);
+                playSegmentSlowly(sections[currentStep].pct);
+                setTimeout(() => { isBusy = false; }, 1900);
             }
 
-            stage.addEventListener('wheel', (e) => {
-                if (Math.abs(e.deltaY) < 8) return;
-                if (e.deltaY > 0 && currentStep < sections.length - 1) {
-                    e.preventDefault();
-                    if (!isTransitioning) goToStep(currentStep + 1);
-                } else if (e.deltaY < 0 && currentStep > 0) {
-                    e.preventDefault();
-                    if (!isTransitioning) goToStep(currentStep - 1);
-                }
-            }, { passive: false });
+            function snapToStage() {
+                isBusy = true;
+                const rect = stage.getBoundingClientRect();
+                window.scrollTo({
+                    top: window.scrollY + rect.top,
+                    behavior: 'smooth'
+                });
+                setTimeout(() => { isBusy = false; }, 850);
+            }
 
-            let touchStartY = null;
-            stage.addEventListener('touchstart', (e) => {
-                touchStartY = e.touches[0].clientY;
-            }, { passive: true });
+            if (window.__wfStageWheelHandler) {
+                window.removeEventListener('wheel', window.__wfStageWheelHandler);
+            }
+
+            window.__wfStageWheelHandler = function(e) {
+                if (!document.body.contains(stage)) {
+                    window.removeEventListener('wheel', window.__wfStageWheelHandler);
+                    return;
+                }
+                if (Math.abs(e.deltaY) < 6) return;
+
+                const rect = stage.getBoundingClientRect();
+
+                if (rect.top > 45 && rect.top < window.innerHeight * 1.15 && e.deltaY > 0) {
+                    e.preventDefault();
+                    if (!isBusy) snapToStage();
+                    return;
+                }
+
+                if (Math.abs(rect.top) <= 45) {
+                    if (e.deltaY > 0) {
+                        if (currentStep < sections.length - 1) {
+                            e.preventDefault();
+                            if (!isBusy) goToStep(currentStep + 1);
+                        }
+                    } else {
+                        if (currentStep > 0) {
+                            e.preventDefault();
+                            if (!isBusy) goToStep(currentStep - 1);
+                        }
+                    }
+                    return;
+                }
+
+                if (rect.top < -45 && rect.bottom > window.innerHeight * 0.45 && e.deltaY < 0) {
+                    e.preventDefault();
+                    if (!isBusy) snapToStage();
+                }
+            };
+
+            window.addEventListener('wheel', window.__wfStageWheelHandler, { passive: false });
+
+            let tY = null;
+            stage.addEventListener('touchstart', (e) => { tY = e.touches[0].clientY; }, { passive: true });
             stage.addEventListener('touchend', (e) => {
-                if (touchStartY === null) return;
-                const diff = touchStartY - e.changedTouches[0].clientY;
-                touchStartY = null;
-                if (Math.abs(diff) < 35 || isTransitioning) return;
+                if (tY === null) return;
+                const diff = tY - e.changedTouches[0].clientY;
+                tY = null;
+                if (Math.abs(diff) < 35 || isBusy) return;
                 if (diff > 0 && currentStep < sections.length - 1) goToStep(currentStep + 1);
                 else if (diff < 0 && currentStep > 0) goToStep(currentStep - 1);
             }, { passive: true });
-
-            document.getElementById('wf-next-step').addEventListener('click', () => {
-                if (!isTransitioning) goToStep(currentStep + 1);
-            });
-            document.getElementById('wf-prev-step').addEventListener('click', () => {
-                if (!isTransitioning) goToStep(currentStep - 1);
-            });
 
             video.addEventListener('loadedmetadata', () => {
                 video.currentTime = 0;
@@ -1064,20 +1166,20 @@ def render_home_page():
         unsafe_allow_javascript=True,
     )
 
-    # Order Now button below the video -> redirects to Menu page
     _, cta_col, _ = st.columns([1.4, 1.2, 1.4])
     with cta_col:
         st.write("")
-        if st.button("🍔 Order Now", key="home_order_now", type="primary", use_container_width=True):
+        st.write("")
+        if st.button("Order Now", key="home_order_now", type="primary", use_container_width=True):
             st.session_state.page = "Menu"
             st.rerun()
 
     # 4. Bounded Auto-Scrolling & User-Scrollable Blurred Testimonials Carousel
     st.html(
         """
-        <div style="margin-top:3rem;">
+        <div class="wf-blur-in" style="margin-top:3.2rem;">
             <h2 class="wf-section-title">Voices After <span>Darkness</span></h2>
-            <p class="wf-section-sub">Scroll or click any review to pause & explore what our regulars say.</p>
+            <p class="wf-section-sub">Scroll or select any review to explore what our regulars say.</p>
         </div>
 
         <style>
@@ -1172,6 +1274,11 @@ def render_home_page():
             font-weight: 700;
             font-size: 0.96rem;
         }
+        .wf-svg-stars {
+            display: inline-flex;
+            gap: 3px;
+            align-items: center;
+        }
         </style>
 
         <div id="wf-testi-box"></div>
@@ -1184,8 +1291,11 @@ def render_home_page():
                 { name: "Abdullah", text: "Ordered the Chicken Paratha Roll with friends — flaky, juicy, and packed with spice. Easily the best late-night cafe vibe around." },
                 { name: "Umer", text: "Dark charcoal aesthetic, super smooth service, and the signature sauce on the burger is pure perfection. My regular weekend stop." },
                 { name: "Ahmed", text: "Fast order confirmation and piping hot delivery. Waqar Foodies never compromises on ingredient freshness." },
-                { name: "Junaid", text: "From the first bite to the last crumb, you can taste the craft. 10/10 for both the Tower Burger and Paratha Roll!" }
+                { name: "Junaid", text: "From the first bite to the last crumb, you can taste the craft. Top marks for both the Tower Burger and Paratha Roll." }
             ];
+
+            const starSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="#D4AF37"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+            const fiveStars = `<span class="wf-svg-stars">${starSvg.repeat(5)}</span>`;
 
             let activeIdx = 0;
             let autoTimer = null;
@@ -1199,7 +1309,7 @@ def render_home_page():
                     <div class="wf-t-quote">“${rev.text}”</div>
                     <div class="wf-t-author">
                         <span>— ${rev.name}</span>
-                        <span>⭐⭐⭐⭐⭐</span>
+                        ${fiveStars}
                     </div>
                 `;
                 el.addEventListener('click', () => {
@@ -1263,7 +1373,7 @@ def render_home_page():
         unsafe_allow_javascript=True,
     )
 
-    # 5. Review Section below Testimonials
+    # 5. Review Section
     render_review_section(standalone=False)
 
 
