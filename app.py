@@ -80,8 +80,6 @@ def get_live_reviews_store() -> list[dict]:
     ]
 
 
-if "page" not in st.session_state:
-    st.session_state.page = "Home"
 if "cart" not in st.session_state:
     st.session_state.cart = {}
 if "saved_customer" not in st.session_state:
@@ -149,8 +147,7 @@ def show_checkout_dialog():
     if not cart_items:
         st.warning("Your order bag is empty. Please add an item from the Menu first.")
         if st.button("Go to Menu", type="primary"):
-            st.session_state.page = "Menu"
-            st.rerun()
+            st.switch_page(menu_page)
         return
 
     top_alert = st.empty()
@@ -330,115 +327,13 @@ def show_confirmation_dialog(order_id: str):
         st.rerun()
 
 
-if st.session_state.confirmed_order_id:
-    show_confirmation_dialog(st.session_state.confirmed_order_id)
-elif st.session_state.open_checkout_modal:
-    st.session_state.open_checkout_modal = False
-    show_checkout_dialog()
-
-
-# -----------------------------------------------------------------------------
-# Top Toolbar (Separate Brand & Home columns + Responsive Mobile Layout)
-# -----------------------------------------------------------------------------
-def render_navbar():
-    cart_items, total_qty, grand_total = get_cart_summary()
-
-    with st.container(key="navbar_wrap"):
-        col_brand, col_home, col_menu, col_review, col_bug, col_bag = st.columns(
-            [2.6, 0.78, 0.78, 0.85, 1.18, 0.6], vertical_alignment="center"
-        )
-
-        with col_brand:
-            logo_exists = Path("static/Logo.png").exists()
-            logo_html = (
-                '<img src="./app/static/Logo.png" class="wf-brand-logo" alt="Waqar Foodies Logo" />'
-                if logo_exists
-                else ""
-            )
-            st.html(
-                '<div class="wf-brand-wrap">'
-                + logo_html
-                + '<span class="wf-brand-name">Waqar Foodies</span></div>'
-            )
-
-        with col_home:
-            if st.button(
-                "Home",
-                key="nav_home",
-                type="primary" if st.session_state.page == "Home" else "secondary",
-                use_container_width=True,
-            ):
-                st.session_state.page = "Home"
-                st.rerun()
-
-        with col_menu:
-            if st.button(
-                "Menu",
-                key="nav_menu",
-                type="primary" if st.session_state.page == "Menu" else "secondary",
-                use_container_width=True,
-            ):
-                st.session_state.page = "Menu"
-                st.rerun()
-
-        with col_review:
-            if st.button(
-                "Review",
-                key="nav_review",
-                type="primary" if st.session_state.page == "Review" else "secondary",
-                use_container_width=True,
-            ):
-                st.session_state.page = "Review"
-                st.rerun()
-
-        with col_bug:
-            if st.button(
-                "Report a bug",
-                key="nav_bug",
-                type="primary" if st.session_state.page == "Bug" else "secondary",
-                use_container_width=True,
-            ):
-                st.session_state.page = "Bug"
-                st.rerun()
-
-        with col_bag:
-            with st.popover(str(total_qty), key="bag_popover", help="Your Order Bag"):
-                st.markdown("#### Your Order")
-                if not cart_items:
-                    st.caption("No items added yet.")
-                else:
-                    for item in cart_items:
-                        r1, r2, r3, r4 = st.columns([2.3, 0.85, 0.85, 1.2], vertical_alignment="center")
-                        with r1:
-                            st.markdown(f"**{item['name']}**")
-                            st.caption(f"PKR {item['price']:,} x {item['qty']}")
-                        with r2:
-                            if st.button("-", key=f"dec_{item['id']}"):
-                                update_cart_qty(item["id"], -1)
-                                st.rerun()
-                        with r3:
-                            if st.button("+", key=f"inc_{item['id']}"):
-                                update_cart_qty(item["id"], +1)
-                                st.rerun()
-                        with r4:
-                            st.markdown(f"**{item['price'] * item['qty']:,}**")
-
-                    st.divider()
-                    st.markdown(f"**Grand Total:** :orange[**PKR {grand_total:,}/-**]")
-                    if st.button("Order", key="basket_order_btn", type="primary", use_container_width=True):
-                        st.session_state.open_checkout_modal = True
-                        st.rerun()
-
-    st.html('<div class="wf-nav-divider"></div>')
-
-
 # -----------------------------------------------------------------------------
 # Review & Bug Report Sections
 # -----------------------------------------------------------------------------
 def render_review_section(standalone: bool = False):
     st.html(
         """
-        <div id="wf-review-anchor" style="margin-top: 3rem; padding-top: 1.5rem;">
+        <div id="wf-review-anchor" style="margin-top: 2.5rem; padding-top: 1.5rem;">
             <h2 class="wf-section-title">Submit a <span>Review</span></h2>
             <p class="wf-section-sub">Loved the crunch, smoke, and warmth? Your review goes live on our wall.</p>
         </div>
@@ -498,6 +393,10 @@ def render_review_section(standalone: bool = False):
                     st.error("Could not send review right now. Please try again shortly.")
 
 
+def render_review_page():
+    render_review_section(standalone=True)
+
+
 def render_bug_page():
     st.html(
         """
@@ -544,7 +443,7 @@ def render_bug_page():
 
 
 # -----------------------------------------------------------------------------
-# Menu Page
+# Menu Page (/menu)
 # -----------------------------------------------------------------------------
 def render_menu_page():
     st.html(
@@ -591,10 +490,10 @@ def render_menu_page():
 
 
 # -----------------------------------------------------------------------------
-# Home Page
+# Home Page (/)
 # -----------------------------------------------------------------------------
 def render_home_page():
-    # 1. Dark Ambient-Lit Intro Overlay (Zero white top/bottom borders) -> 1s Delay -> Blur-In
+    # 1. Full-Bleed Edge-to-Edge Intro Video (Covers Desktop & Crops Cleanly on Mobile, Zero White Borders)
     st.html(
         """
         <style>
@@ -605,49 +504,42 @@ def render_home_page():
             height: 100dvh;
             z-index: 999999;
             background: #0B0A09 !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             overflow: hidden;
             opacity: 1;
             transition: opacity 0.95s ease;
         }
-        /* Top & bottom dark vignette eliminates any white border lines */
+        /* Subtle dark vignette seals outer edges completely */
         #wf-intro-overlay::after {
             content: "";
             position: absolute;
             inset: 0;
             z-index: 3;
             pointer-events: none;
-            background: linear-gradient(180deg, #0B0A09 0%, transparent 15%, transparent 85%, #0B0A09 100%);
+            box-shadow: inset 0 0 70px 28px #0B0A09;
         }
         #wf-intro-overlay.wf-removed {
             display: none !important;
             pointer-events: none !important;
         }
-        #wf-intro-ambient {
-            position: absolute;
-            inset: -14%;
-            width: 128%;
-            height: 128%;
-            object-fit: cover;
-            filter: blur(55px) saturate(1.3) brightness(0.32);
-            opacity: 0;
-            transition: opacity 1.1s ease;
-            pointer-events: none;
-            z-index: 1;
-        }
         #wf-intro-video {
-            position: relative;
-            z-index: 2;
+            position: absolute;
+            inset: 0;
             width: 100vw;
             height: 100dvh;
-            object-fit: contain;
-            background: transparent;
+            object-fit: cover;
+            object-position: center center;
+            /* Overscan crops out any baked-in white letterbox borders on desktop & mobile */
+            transform: scale(1.16);
             opacity: 0;
             transition: opacity 1.0s ease;
-            -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
-            mask-image: linear-gradient(180deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+            z-index: 2;
+        }
+        @media (max-width: 768px) {
+            #wf-intro-video {
+                object-fit: cover;
+                object-position: center center;
+                transform: scale(1.20);
+            }
         }
         #wf-intro-skip {
             position: absolute;
@@ -670,7 +562,6 @@ def render_home_page():
         </style>
 
         <div id="wf-intro-overlay">
-            <video id="wf-intro-ambient" src="./app/static/intro.mp4" autoplay muted playsinline webkit-playsinline preload="auto"></video>
             <video id="wf-intro-video" src="./app/static/intro.mp4" autoplay muted playsinline webkit-playsinline preload="auto"></video>
             <button id="wf-intro-skip" type="button">Skip</button>
         </div>
@@ -680,7 +571,6 @@ def render_home_page():
             function initIntro() {
                 const overlay = document.getElementById('wf-intro-overlay');
                 const vid = document.getElementById('wf-intro-video');
-                const amb = document.getElementById('wf-intro-ambient');
                 const skipBtn = document.getElementById('wf-intro-skip');
                 const appRoot = document.querySelector('[data-testid="stAppViewContainer"]');
 
@@ -719,7 +609,7 @@ def render_home_page():
                         overlay.classList.add('wf-removed');
                     }, 980);
 
-                    // 1 second after intro finishes fading out, fade-in-blur-in all page elements
+                    // 1 second after intro finishes fading out, fade-in-blur-in all website elements
                     setTimeout(() => {
                         if (appRoot) {
                             appRoot.classList.remove('wf-page-hidden');
@@ -733,21 +623,10 @@ def render_home_page():
                     vid.muted = true;
                     vid.setAttribute('muted', '');
                     vid.setAttribute('playsinline', '');
-                    if (amb) {
-                        amb.muted = true;
-                        amb.setAttribute('muted', '');
-                        amb.setAttribute('playsinline', '');
-                    }
                     vid.style.opacity = '1';
-                    if (amb) amb.style.opacity = '0.85';
 
                     const p = vid.play();
                     if (p && typeof p.catch === 'function') p.catch(() => {});
-                    if (amb) {
-                        amb.currentTime = vid.currentTime || 0;
-                        const ap = amb.play();
-                        if (ap && typeof ap.catch === 'function') ap.catch(() => {});
-                    }
                 }
 
                 vid.addEventListener('loadedmetadata', startPlayback);
@@ -755,9 +634,6 @@ def render_home_page():
                 vid.addEventListener('canplay', startPlayback);
 
                 vid.addEventListener('timeupdate', () => {
-                    if (amb && Math.abs(amb.currentTime - vid.currentTime) > 0.15) {
-                        amb.currentTime = vid.currentTime;
-                    }
                     if (vid.duration && vid.duration - vid.currentTime <= 0.85) {
                         finishIntro();
                     }
@@ -767,13 +643,11 @@ def render_home_page():
                 vid.addEventListener('error', finishIntro);
                 skipBtn.addEventListener('click', finishIntro);
 
-                // Tap overlay on mobile if browser paused initial autoplay
                 overlay.addEventListener('touchstart', () => {
                     if (vid.paused && !finished) startPlayback();
                 }, { passive: true });
 
                 vid.load();
-                if (amb) amb.load();
 
                 setTimeout(() => {
                     if (!finished && vid.readyState === 0) {
@@ -791,7 +665,7 @@ def render_home_page():
         unsafe_allow_javascript=True,
     )
 
-    # 2. Quote-Style Hero Header
+    # 2. Sleek, Curvy, Stylish Quote Header
     st.html(
         """
         <style>
@@ -806,66 +680,79 @@ def render_home_page():
         }
         .wf-quote-card {
             position: relative;
-            max-width: 920px;
-            padding: 2.2rem 2.4rem 1.8rem 2.4rem;
+            max-width: 960px;
+            padding: 2.3rem 2.6rem 1.9rem 2.6rem;
             border-top: 1px solid rgba(212, 175, 55, 0.35);
             border-bottom: 1px solid rgba(212, 175, 55, 0.35);
             background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.06), transparent 72%);
         }
         .wf-quote-mark-open,
         .wf-quote-mark-close {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(3rem, 5.5vw, 5rem);
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: clamp(3.4rem, 6vw, 5.4rem);
             color: rgba(212, 175, 55, 0.55);
-            line-height: 0.5;
+            line-height: 0.45;
             user-select: none;
         }
         .wf-quote-mark-open {
-            margin-bottom: 0.7rem;
+            margin-bottom: 0.75rem;
             display: block;
             text-align: left;
         }
         .wf-quote-mark-close {
-            margin-top: 0.7rem;
+            margin-top: 0.75rem;
             display: block;
             text-align: right;
         }
         .wf-hero-heading {
-            font-family: 'Playfair Display', serif;
             color: #F5EFE6;
-            line-height: 1.2;
+            line-height: 1.28;
             margin: 0 auto;
+            font-weight: 400;
         }
         .wf-w-flavour {
-            font-family: 'Lobster', cursive;
-            font-size: clamp(2.8rem, 6.6vw, 5.5rem);
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(3.6rem, 7.6vw, 6.4rem);
+            font-weight: 400;
             color: #D4AF37;
-            text-shadow: 0 4px 26px rgba(212, 175, 55, 0.35);
+            letter-spacing: 1px;
+            text-shadow: 0 4px 28px rgba(212, 175, 55, 0.38);
+            padding-right: 4px;
         }
         .wf-w-small {
-            font-size: clamp(1.15rem, 2.5vw, 2rem);
-            font-weight: 400;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.3rem, 2.6vw, 2.15rem);
+            font-weight: 300;
             color: #E6DAC8;
             font-style: italic;
+            letter-spacing: 0.8px;
         }
         .wf-w-alive {
-            font-size: clamp(1.85rem, 4vw, 3.2rem);
-            font-weight: 800;
+            font-family: 'Parisienne', cursive;
+            font-size: clamp(2.4rem, 4.8vw, 3.9rem);
+            font-weight: 400;
             color: #F5EFE6;
-            letter-spacing: 1px;
+            letter-spacing: 0.8px;
+            text-shadow: 0 2px 18px rgba(245, 239, 230, 0.22);
         }
         .wf-w-darkness {
-            font-size: clamp(2.7rem, 6vw, 5.1rem);
-            font-weight: 900;
-            background: linear-gradient(180deg, #FFF5DC 0%, #D4AF37 55%, #8C6A15 100%);
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(3.5rem, 7.3vw, 6.1rem);
+            font-weight: 400;
+            letter-spacing: 1.2px;
+            padding: 0 6px;
+            background: linear-gradient(180deg, #FFF5DC 0%, #D4AF37 58%, #9A7418 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 6px 24px rgba(212, 175, 55, 0.25));
+            filter: drop-shadow(0 6px 24px rgba(212, 175, 55, 0.28));
         }
         .wf-quote-attr {
             margin-top: 1.1rem;
-            font-size: 0.82rem;
-            letter-spacing: 3px;
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 1rem;
+            letter-spacing: 3.5px;
             text-transform: uppercase;
             color: #D4AF37;
             font-weight: 600;
@@ -878,7 +765,7 @@ def render_home_page():
             color: rgba(245, 239, 230, 0.45);
         }
         @media (max-width: 640px) {
-            .wf-quote-card { padding: 1.6rem 1.2rem 1.4rem 1.2rem; }
+            .wf-quote-card { padding: 1.6rem 1.1rem 1.4rem 1.1rem; }
         }
         </style>
         <div id="wf-hero-anchor" class="wf-hero">
@@ -898,7 +785,7 @@ def render_home_page():
         """
     )
 
-    # 3. Full-Screen Seamless Scroll-Controlled Showcase (Mobile & Desktop Touch/Wheel Locked)
+    # 3. Full-Screen Seamless Scroll-Controlled Showcase
     st.html(
         """
         <style>
@@ -1170,7 +1057,6 @@ def render_home_page():
                 let isVideoPrimed = false;
                 let animFrame = null;
 
-                // Prime video decoder on mobile so frame 0 renders immediately instead of black/empty
                 function primeMobileVideo() {
                     if (isVideoPrimed) return;
                     isVideoPrimed = true;
@@ -1220,7 +1106,6 @@ def render_home_page():
                     return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
                 }
 
-                // Smooth Ease-In and Ease-Out auto-scroll while strictly blocking user scroll
                 function smoothScrollToEl(targetEl, duration = 900, onDone = null) {
                     if (!targetEl) {
                         isBusy = false;
@@ -1355,11 +1240,9 @@ def render_home_page():
                     currentStep = nextIdx;
                     applySideText(currentStep);
                     playSegmentSmoothly(sections[currentStep].pct);
-                    // Failsafe unlock
                     setTimeout(() => { isBusy = false; }, 2200);
                 }
 
-                // Unified directional navigation handler for both desktop wheel & mobile touch
                 function handleScrollDirection(dir, targetEl) {
                     if (isBusy) return;
 
@@ -1368,13 +1251,11 @@ def render_home_page():
                     const reviewAnchor = document.getElementById('wf-review-anchor');
                     const testiBox = document.getElementById('wf-testi-box');
 
-                    // 1. Hero -> Video Stage
                     if (stageRect.top > 55) {
                         if (dir > 0) smoothScrollToEl(stage, 900);
                         return;
                     }
 
-                    // 2. Locked inside Video Stage
                     if (Math.abs(stageRect.top) <= 55) {
                         if (dir > 0) {
                             if (currentStep < sections.length - 1) {
@@ -1392,14 +1273,13 @@ def render_home_page():
                         return;
                     }
 
-                    // 3. Testimonials <-> Submit Review
                     if (testiAnchor && reviewAnchor) {
                         const testiRect = testiAnchor.getBoundingClientRect();
                         const revRect = reviewAnchor.getBoundingClientRect();
 
                         if (testiRect.top <= 160 && revRect.top > 140) {
                             if (testiBox && testiBox.contains(targetEl)) {
-                                return; // Let testimonials carousel handle internal swipe/wheel
+                                return;
                             }
                             if (dir > 0) smoothScrollToEl(reviewAnchor, 900);
                             else smoothScrollToEl(stage, 900);
@@ -1420,47 +1300,42 @@ def render_home_page():
                     );
                 }
 
-                // Clean previous listeners on Streamlit reruns
-                if (window.__wfStageWheelHandler) {
-                    window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
-                }
-                if (window.__wfTouchStartHandler) {
-                    window.removeEventListener('touchstart', window.__wfTouchStartHandler, true);
-                }
-                if (window.__wfTouchMoveHandler) {
-                    window.removeEventListener('touchmove', window.__wfTouchMoveHandler, true);
-                }
-                if (window.__wfTouchEndHandler) {
-                    window.removeEventListener('touchend', window.__wfTouchEndHandler, true);
+                function detachAllScrollListeners() {
+                    if (window.__wfStageWheelHandler) window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
+                    if (window.__wfTouchStartHandler) window.removeEventListener('touchstart', window.__wfTouchStartHandler, true);
+                    if (window.__wfTouchMoveHandler) window.removeEventListener('touchmove', window.__wfTouchMoveHandler, true);
+                    if (window.__wfTouchEndHandler) window.removeEventListener('touchend', window.__wfTouchEndHandler, true);
                 }
 
-                // Desktop Wheel Lock
+                detachAllScrollListeners();
+
                 window.__wfStageWheelHandler = function(e) {
-                    if (!document.body.contains(stage)) return;
+                    if (!document.body.contains(stage)) {
+                        detachAllScrollListeners();
+                        return;
+                    }
                     if (isInteractiveOverlayOpen(e.target)) return;
                     if (Math.abs(e.deltaY) < 4) return;
 
                     const testiBox = document.getElementById('wf-testi-box');
-                    if (testiBox && testiBox.contains(e.target) && !isBusy) {
-                        return;
-                    }
+                    if (testiBox && testiBox.contains(e.target) && !isBusy) return;
 
                     const reviewAnchor = document.getElementById('wf-review-anchor');
                     const revRect = reviewAnchor ? reviewAnchor.getBoundingClientRect() : null;
-                    if (revRect && revRect.top <= 140 && e.deltaY > 0 && !isBusy) {
-                        return; // Allow reading/scrolling down inside Submit Review
-                    }
+                    if (revRect && revRect.top <= 140 && e.deltaY > 0 && !isBusy) return;
 
                     e.preventDefault();
                     handleScrollDirection(e.deltaY > 0 ? 1 : -1, e.target);
                 };
 
-                // Mobile Touch Scroll Lock + Auto-Scroll Trigger
                 let touchStartY = null;
                 let touchTriggered = false;
 
                 window.__wfTouchStartHandler = function(e) {
-                    if (!document.body.contains(stage)) return;
+                    if (!document.body.contains(stage)) {
+                        detachAllScrollListeners();
+                        return;
+                    }
                     primeMobileVideo();
                     if (e.touches.length !== 1) return;
                     touchStartY = e.touches[0].clientY;
@@ -1468,10 +1343,12 @@ def render_home_page():
                 };
 
                 window.__wfTouchMoveHandler = function(e) {
-                    if (!document.body.contains(stage)) return;
+                    if (!document.body.contains(stage)) {
+                        detachAllScrollListeners();
+                        return;
+                    }
                     if (isInteractiveOverlayOpen(e.target)) return;
 
-                    // Strictly block user finger scroll while auto-scroll or video transition is running
                     if (isBusy) {
                         e.preventDefault();
                         return;
@@ -1482,17 +1359,12 @@ def render_home_page():
                     if (Math.abs(diff) < 10) return;
 
                     const testiBox = document.getElementById('wf-testi-box');
-                    if (testiBox && testiBox.contains(e.target)) {
-                        return;
-                    }
+                    if (testiBox && testiBox.contains(e.target)) return;
 
                     const reviewAnchor = document.getElementById('wf-review-anchor');
                     const revRect = reviewAnchor ? reviewAnchor.getBoundingClientRect() : null;
-                    if (revRect && revRect.top <= 140 && diff > 0) {
-                        return;
-                    }
+                    if (revRect && revRect.top <= 140 && diff > 0) return;
 
-                    // Block browser's raw finger drag and fire single ease-in-out scroll trigger
                     e.preventDefault();
                     if (!touchTriggered && Math.abs(diff) >= 24) {
                         touchTriggered = true;
@@ -1526,8 +1398,7 @@ def render_home_page():
         st.write("")
         st.write("")
         if st.button("Order Now", key="home_order_now", type="primary", use_container_width=True):
-            st.session_state.page = "Menu"
-            st.rerun()
+            st.switch_page(menu_page)
 
     # 4. Bounded Auto-Scrolling & User-Scrollable Blurred Testimonials Carousel
     live_reviews = get_live_reviews_store()
@@ -1788,15 +1659,116 @@ def render_home_page():
 
 
 # -----------------------------------------------------------------------------
-# Router
+# Dedicated URL Pages Setup (st.navigation)
 # -----------------------------------------------------------------------------
-render_navbar()
+home_page = st.Page(render_home_page, title="Waqar Foodies | Flavour After Darkness", url_path="home", default=True)
+menu_page = st.Page(render_menu_page, title="Menu | Waqar Foodies", url_path="menu")
+review_page = st.Page(render_review_page, title="Review | Waqar Foodies", url_path="review")
+bug_page = st.Page(render_bug_page, title="Report a Bug | Waqar Foodies", url_path="report-a-bug")
 
-if st.session_state.page == "Home":
-    render_home_page()
-elif st.session_state.page == "Menu":
-    render_menu_page()
-elif st.session_state.page == "Review":
-    render_review_section(standalone=True)
-elif st.session_state.page == "Bug":
-    render_bug_page()
+current_page = st.navigation(
+    [home_page, menu_page, review_page, bug_page],
+    position="hidden",
+)
+
+
+# -----------------------------------------------------------------------------
+# Top Toolbar
+# -----------------------------------------------------------------------------
+def render_navbar(active_page):
+    cart_items, total_qty, grand_total = get_cart_summary()
+
+    with st.container(key="navbar_wrap"):
+        col_brand, col_home, col_menu, col_review, col_bug, col_bag = st.columns(
+            [2.6, 0.78, 0.78, 0.85, 1.18, 0.6], vertical_alignment="center"
+        )
+
+        with col_brand:
+            logo_exists = Path("static/Logo.png").exists()
+            logo_html = (
+                '<img src="./app/static/Logo.png" class="wf-brand-logo" alt="Waqar Foodies Logo" />'
+                if logo_exists
+                else ""
+            )
+            st.html(
+                '<div class="wf-brand-wrap">'
+                + logo_html
+                + '<span class="wf-brand-name">Waqar Foodies</span></div>'
+            )
+
+        with col_home:
+            if st.button(
+                "Home",
+                key="nav_home",
+                type="primary" if active_page == home_page else "secondary",
+                use_container_width=True,
+            ):
+                st.switch_page(home_page)
+
+        with col_menu:
+            if st.button(
+                "Menu",
+                key="nav_menu",
+                type="primary" if active_page == menu_page else "secondary",
+                use_container_width=True,
+            ):
+                st.switch_page(menu_page)
+
+        with col_review:
+            if st.button(
+                "Review",
+                key="nav_review",
+                type="primary" if active_page == review_page else "secondary",
+                use_container_width=True,
+            ):
+                st.switch_page(review_page)
+
+        with col_bug:
+            if st.button(
+                "Report a bug",
+                key="nav_bug",
+                type="primary" if active_page == bug_page else "secondary",
+                use_container_width=True,
+            ):
+                st.switch_page(bug_page)
+
+        with col_bag:
+            with st.popover(str(total_qty), key="bag_popover", help="Your Order Bag"):
+                st.markdown("#### Your Order")
+                if not cart_items:
+                    st.caption("No items added yet.")
+                else:
+                    for item in cart_items:
+                        r1, r2, r3, r4 = st.columns([2.3, 0.85, 0.85, 1.2], vertical_alignment="center")
+                        with r1:
+                            st.markdown(f"**{item['name']}**")
+                            st.caption(f"PKR {item['price']:,} x {item['qty']}")
+                        with r2:
+                            if st.button("-", key=f"dec_{item['id']}"):
+                                update_cart_qty(item["id"], -1)
+                                st.rerun()
+                        with r3:
+                            if st.button("+", key=f"inc_{item['id']}"):
+                                update_cart_qty(item["id"], +1)
+                                st.rerun()
+                        with r4:
+                            st.markdown(f"**{item['price'] * item['qty']:,}**")
+
+                    st.divider()
+                    st.markdown(f"**Grand Total:** :orange[**PKR {grand_total:,}/-**]")
+                    if st.button("Order", key="basket_order_btn", type="primary", use_container_width=True):
+                        st.session_state.open_checkout_modal = True
+                        st.rerun()
+
+    st.html('<div class="wf-nav-divider"></div>')
+
+
+# Render Dialogs, Common Navbar, and Active URL Page
+if st.session_state.confirmed_order_id:
+    show_confirmation_dialog(st.session_state.confirmed_order_id)
+elif st.session_state.open_checkout_modal:
+    st.session_state.open_checkout_modal = False
+    show_checkout_dialog()
+
+render_navbar(current_page)
+current_page.run()
