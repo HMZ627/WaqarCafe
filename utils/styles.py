@@ -24,15 +24,16 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     color: var(--wf-cream) !important;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
     overflow-x: hidden !important;
+    overscroll-behavior-y: none !important;
 }
 
 .block-container {
-    padding-top: 1rem !important;
+    padding-top: 0.9rem !important;
     padding-bottom: 3.5rem !important;
     max-width: 1240px !important;
 }
 
-/* Fade-In-Blur-In Reveal (transform clears at end so fixed/dialog positioning stays intact) */
+/* Fade-In-Blur-In Reveal */
 @keyframes wfBlurReveal {
     0% {
         opacity: 0;
@@ -60,16 +61,18 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     animation: wfBlurReveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Upper-Left Brand & Larger Logo */
+/* Upper-Left Brand & Larger Logo (Never overlaps adjacent buttons) */
 .wf-brand-wrap {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
+    min-width: 0;
 }
 
 .wf-brand-logo {
-    height: 82px;
+    height: clamp(56px, 6.2vw, 82px);
     width: auto;
+    flex-shrink: 0;
     object-fit: contain;
     border-radius: 14px;
     filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.6));
@@ -77,12 +80,53 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 
 .wf-brand-name {
     font-family: 'Lobster', cursive !important;
-    font-size: 2.3rem !important;
+    font-size: clamp(1.5rem, 2.3vw, 2.25rem) !important;
     color: var(--wf-gold) !important;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     line-height: 1.05;
     text-shadow: 0 2px 16px rgba(212, 175, 55, 0.28);
     white-space: nowrap;
+}
+
+/* Responsive Navbar Row so Home never overlaps Brand on desktop or mobile */
+.st-key-navbar_wrap [data-testid="stHorizontalBlock"] {
+    align-items: center !important;
+    gap: 0.65rem !important;
+}
+
+@media (max-width: 820px) {
+    .st-key-navbar_wrap [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+    }
+    .st-key-navbar_wrap [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(1) {
+        flex: 1 1 calc(100% - 72px) !important;
+        width: auto !important;
+        min-width: 0 !important;
+        order: 1 !important;
+    }
+    .st-key-navbar_wrap [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(6) {
+        flex: 0 0 56px !important;
+        width: 56px !important;
+        min-width: 56px !important;
+        order: 2 !important;
+    }
+    .st-key-navbar_wrap [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(2),
+    .st-key-navbar_wrap [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(3),
+    .st-key-navbar_wrap [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(4),
+    .st-key-navbar_wrap [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(5) {
+        flex: 1 1 auto !important;
+        width: auto !important;
+        min-width: max-content !important;
+        order: 3 !important;
+    }
+    .st-key-navbar_wrap div.stButton > button {
+        padding: 0.42rem 0.8rem !important;
+        font-size: 0.85rem !important;
+    }
 }
 
 /* Standard Navigation & Action Buttons */
@@ -91,9 +135,10 @@ div.stButton > button {
     color: var(--wf-cream) !important;
     border: 1px solid var(--wf-border) !important;
     border-radius: 999px !important;
-    padding: 0.52rem 1.25rem !important;
+    padding: 0.5rem 1.05rem !important;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
     font-weight: 600 !important;
+    white-space: nowrap !important;
     transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
@@ -125,9 +170,7 @@ div.stFormSubmitButton > button:hover,
     box-shadow: 0 8px 26px rgba(212, 175, 55, 0.42) !important;
 }
 
-/* ============================================================================
-   Top-Right Bag Icon + Overlapping Item Count Badge
-   ============================================================================ */
+/* Top-Right Bag Icon + Overlapping Item Count Badge */
 .st-key-bag_popover {
     display: flex !important;
     justify-content: flex-end !important;
@@ -135,9 +178,9 @@ div.stFormSubmitButton > button:hover,
 
 .st-key-bag_popover button {
     position: relative !important;
-    width: 52px !important;
-    height: 52px !important;
-    min-height: 52px !important;
+    width: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
     padding: 0 !important;
     border-radius: 15px !important;
     background: linear-gradient(135deg, #211F1A, #151411) !important;
@@ -191,9 +234,7 @@ div.stFormSubmitButton > button:hover,
     pointer-events: none !important;
 }
 
-/* ============================================================================
-   Buttery Pop-Out Animation for Basket Popover & '+'/'-' Fixes
-   ============================================================================ */
+/* Buttery Pop-Out Animation for Basket Popover & '+'/'-' Fixes */
 @keyframes wfBagPopOut {
     0% {
         opacity: 0;
@@ -213,7 +254,7 @@ div.stFormSubmitButton > button:hover,
 }
 
 div[data-testid="stPopoverBody"] {
-    min-width: 350px !important;
+    min-width: min(350px, 90vw) !important;
     background: linear-gradient(160deg, #1E1C18, #141311) !important;
     border: 1px solid rgba(212, 175, 55, 0.42) !important;
     border-radius: 18px !important;
@@ -243,9 +284,7 @@ div[data-testid="stPopoverBody"] .st-key-basket_order_btn button {
     font-size: 0.98rem !important;
 }
 
-/* ============================================================================
-   Buttery Fade-In-Upwards Animation for Checkout / Confirmation Dialogs
-   ============================================================================ */
+/* Buttery Fade-In-Upwards Animation for Checkout / Confirmation Dialogs */
 @keyframes wfDialogFadeUp {
     0% {
         opacity: 0;
