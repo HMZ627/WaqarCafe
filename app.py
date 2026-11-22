@@ -338,91 +338,96 @@ elif st.session_state.open_checkout_modal:
 
 
 # -----------------------------------------------------------------------------
-# Top Toolbar
+# Top Toolbar (Separate Brand & Home columns + Responsive Mobile Layout)
 # -----------------------------------------------------------------------------
 def render_navbar():
     cart_items, total_qty, grand_total = get_cart_summary()
 
-    col_brand, col_menu, col_review, col_bug, col_bag = st.columns(
-        [3.1, 0.9, 0.9, 1.25, 0.65], vertical_alignment="center"
-    )
-
-    with col_brand:
-        logo_exists = Path("static/Logo.png").exists()
-        logo_html = (
-            '<img src="./app/static/Logo.png" class="wf-brand-logo" alt="Waqar Foodies Logo" />'
-            if logo_exists
-            else ""
+    with st.container(key="navbar_wrap"):
+        col_brand, col_home, col_menu, col_review, col_bug, col_bag = st.columns(
+            [2.6, 0.78, 0.78, 0.85, 1.18, 0.6], vertical_alignment="center"
         )
-        c_logo, c_home = st.columns([3.4, 1.0], vertical_alignment="center")
-        with c_logo:
+
+        with col_brand:
+            logo_exists = Path("static/Logo.png").exists()
+            logo_html = (
+                '<img src="./app/static/Logo.png" class="wf-brand-logo" alt="Waqar Foodies Logo" />'
+                if logo_exists
+                else ""
+            )
             st.html(
                 '<div class="wf-brand-wrap">'
                 + logo_html
                 + '<span class="wf-brand-name">Waqar Foodies</span></div>'
             )
-        with c_home:
-            if st.button("Home", key="nav_home"):
+
+        with col_home:
+            if st.button(
+                "Home",
+                key="nav_home",
+                type="primary" if st.session_state.page == "Home" else "secondary",
+                use_container_width=True,
+            ):
                 st.session_state.page = "Home"
                 st.rerun()
 
-    with col_menu:
-        if st.button(
-            "Menu",
-            key="nav_menu",
-            type="primary" if st.session_state.page == "Menu" else "secondary",
-            use_container_width=True,
-        ):
-            st.session_state.page = "Menu"
-            st.rerun()
+        with col_menu:
+            if st.button(
+                "Menu",
+                key="nav_menu",
+                type="primary" if st.session_state.page == "Menu" else "secondary",
+                use_container_width=True,
+            ):
+                st.session_state.page = "Menu"
+                st.rerun()
 
-    with col_review:
-        if st.button(
-            "Review",
-            key="nav_review",
-            type="primary" if st.session_state.page == "Review" else "secondary",
-            use_container_width=True,
-        ):
-            st.session_state.page = "Review"
-            st.rerun()
+        with col_review:
+            if st.button(
+                "Review",
+                key="nav_review",
+                type="primary" if st.session_state.page == "Review" else "secondary",
+                use_container_width=True,
+            ):
+                st.session_state.page = "Review"
+                st.rerun()
 
-    with col_bug:
-        if st.button(
-            "Report a bug",
-            key="nav_bug",
-            type="primary" if st.session_state.page == "Bug" else "secondary",
-            use_container_width=True,
-        ):
-            st.session_state.page = "Bug"
-            st.rerun()
+        with col_bug:
+            if st.button(
+                "Report a bug",
+                key="nav_bug",
+                type="primary" if st.session_state.page == "Bug" else "secondary",
+                use_container_width=True,
+            ):
+                st.session_state.page = "Bug"
+                st.rerun()
 
-    with col_bag:
-        with st.popover(str(total_qty), key="bag_popover", help="Your Order Bag"):
-            st.markdown("#### Your Order")
-            if not cart_items:
-                st.caption("No items added yet.")
-            else:
-                for item in cart_items:
-                    r1, r2, r3, r4 = st.columns([2.3, 0.85, 0.85, 1.2], vertical_alignment="center")
-                    with r1:
-                        st.markdown(f"**{item['name']}**")
-                        st.caption(f"PKR {item['price']:,} x {item['qty']}")
-                    with r2:
-                        if st.button("-", key=f"dec_{item['id']}"):
-                            update_cart_qty(item["id"], -1)
-                            st.rerun()
-                    with r3:
-                        if st.button("+", key=f"inc_{item['id']}"):
-                            update_cart_qty(item["id"], +1)
-                            st.rerun()
-                    with r4:
-                        st.markdown(f"**{item['price'] * item['qty']:,}**")
+        with col_bag:
+            with st.popover(str(total_qty), key="bag_popover", help="Your Order Bag"):
+                st.markdown("#### Your Order")
+                if not cart_items:
+                    st.caption("No items added yet.")
+                else:
+                    for item in cart_items:
+                        r1, r2, r3, r4 = st.columns([2.3, 0.85, 0.85, 1.2], vertical_alignment="center")
+                        with r1:
+                            st.markdown(f"**{item['name']}**")
+                            st.caption(f"PKR {item['price']:,} x {item['qty']}")
+                        with r2:
+                            if st.button("-", key=f"dec_{item['id']}"):
+                                update_cart_qty(item["id"], -1)
+                                st.rerun()
+                        with r3:
+                            if st.button("+", key=f"inc_{item['id']}"):
+                                update_cart_qty(item["id"], +1)
+                                st.rerun()
+                        with r4:
+                            st.markdown(f"**{item['price'] * item['qty']:,}**")
 
-                st.divider()
-                st.markdown(f"**Grand Total:** :orange[**PKR {grand_total:,}/-**]")
-                if st.button("Order", key="basket_order_btn", type="primary", use_container_width=True):
-                    st.session_state.open_checkout_modal = True
-                    st.rerun()
+                    st.divider()
+                    st.markdown(f"**Grand Total:** :orange[**PKR {grand_total:,}/-**]")
+                    if st.button("Order", key="basket_order_btn", type="primary", use_container_width=True):
+                        st.session_state.open_checkout_modal = True
+                        st.rerun()
 
     st.html('<div class="wf-nav-divider"></div>')
 
@@ -589,7 +594,7 @@ def render_menu_page():
 # Home Page
 # -----------------------------------------------------------------------------
 def render_home_page():
-    # 1. Ambient-Lit Intro Overlay -> Fades Out -> 1s Delay -> Page Fade-In-Blur-In
+    # 1. Dark Ambient-Lit Intro Overlay (Zero white top/bottom borders) -> 1s Delay -> Blur-In
     st.html(
         """
         <style>
@@ -597,9 +602,9 @@ def render_home_page():
             position: fixed;
             inset: 0;
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
             z-index: 999999;
-            background: #0B0A09;
+            background: #0B0A09 !important;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -607,40 +612,49 @@ def render_home_page():
             opacity: 1;
             transition: opacity 0.95s ease;
         }
+        /* Top & bottom dark vignette eliminates any white border lines */
+        #wf-intro-overlay::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            pointer-events: none;
+            background: linear-gradient(180deg, #0B0A09 0%, transparent 15%, transparent 85%, #0B0A09 100%);
+        }
         #wf-intro-overlay.wf-removed {
             display: none !important;
             pointer-events: none !important;
         }
         #wf-intro-ambient {
             position: absolute;
-            inset: -12%;
-            width: 124%;
-            height: 124%;
+            inset: -14%;
+            width: 128%;
+            height: 128%;
             object-fit: cover;
-            filter: blur(55px) saturate(1.6) brightness(0.72);
+            filter: blur(55px) saturate(1.3) brightness(0.32);
             opacity: 0;
             transition: opacity 1.1s ease;
             pointer-events: none;
+            z-index: 1;
         }
         #wf-intro-video {
             position: relative;
             z-index: 2;
-            max-width: 100vw;
-            max-height: 100vh;
-            width: auto;
-            height: 100vh;
+            width: 100vw;
+            height: 100dvh;
             object-fit: contain;
+            background: transparent;
             opacity: 0;
             transition: opacity 1.0s ease;
-            -webkit-mask-image: radial-gradient(ellipse 88% 92% at 50% 50%, #000 72%, transparent 100%);
-            mask-image: radial-gradient(ellipse 88% 92% at 50% 50%, #000 72%, transparent 100%);
+            -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+            mask-image: linear-gradient(180deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
         }
         #wf-intro-skip {
             position: absolute;
-            bottom: 32px;
-            right: 32px;
-            z-index: 5;
-            background: rgba(18, 18, 18, 0.72);
+            bottom: 28px;
+            right: 28px;
+            z-index: 6;
+            background: rgba(18, 18, 18, 0.78);
             color: #F5EFE6;
             border: 1px solid rgba(212, 175, 55, 0.48);
             border-radius: 999px;
@@ -656,12 +670,8 @@ def render_home_page():
         </style>
 
         <div id="wf-intro-overlay">
-            <video id="wf-intro-ambient" autoplay muted playsinline preload="auto">
-                <source src="./app/static/intro.mp4" type="video/mp4" />
-            </video>
-            <video id="wf-intro-video" autoplay muted playsinline preload="auto">
-                <source src="./app/static/intro.mp4" type="video/mp4" />
-            </video>
+            <video id="wf-intro-ambient" src="./app/static/intro.mp4" autoplay muted playsinline webkit-playsinline preload="auto"></video>
+            <video id="wf-intro-video" src="./app/static/intro.mp4" autoplay muted playsinline webkit-playsinline preload="auto"></video>
             <button id="wf-intro-skip" type="button">Skip</button>
         </div>
 
@@ -709,7 +719,7 @@ def render_home_page():
                         overlay.classList.add('wf-removed');
                     }, 980);
 
-                    // 1 second after intro finishes fading out, reveal all website elements with fade-in-blur-in
+                    // 1 second after intro finishes fading out, fade-in-blur-in all page elements
                     setTimeout(() => {
                         if (appRoot) {
                             appRoot.classList.remove('wf-page-hidden');
@@ -721,17 +731,26 @@ def render_home_page():
 
                 function startPlayback() {
                     vid.muted = true;
-                    if (amb) amb.muted = true;
-                    vid.style.opacity = '1';
-                    if (amb) amb.style.opacity = '0.9';
-
-                    vid.play().catch(() => {});
+                    vid.setAttribute('muted', '');
+                    vid.setAttribute('playsinline', '');
                     if (amb) {
-                        amb.currentTime = vid.currentTime;
-                        amb.play().catch(() => {});
+                        amb.muted = true;
+                        amb.setAttribute('muted', '');
+                        amb.setAttribute('playsinline', '');
+                    }
+                    vid.style.opacity = '1';
+                    if (amb) amb.style.opacity = '0.85';
+
+                    const p = vid.play();
+                    if (p && typeof p.catch === 'function') p.catch(() => {});
+                    if (amb) {
+                        amb.currentTime = vid.currentTime || 0;
+                        const ap = amb.play();
+                        if (ap && typeof ap.catch === 'function') ap.catch(() => {});
                     }
                 }
 
+                vid.addEventListener('loadedmetadata', startPlayback);
                 vid.addEventListener('loadeddata', startPlayback);
                 vid.addEventListener('canplay', startPlayback);
 
@@ -746,11 +765,12 @@ def render_home_page():
 
                 vid.addEventListener('ended', finishIntro);
                 vid.addEventListener('error', finishIntro);
-
-                const sourceEl = vid.querySelector('source');
-                if (sourceEl) sourceEl.addEventListener('error', finishIntro);
-
                 skipBtn.addEventListener('click', finishIntro);
+
+                // Tap overlay on mobile if browser paused initial autoplay
+                overlay.addEventListener('touchstart', () => {
+                    if (vid.paused && !finished) startPlayback();
+                }, { passive: true });
 
                 vid.load();
                 if (amb) amb.load();
@@ -761,7 +781,7 @@ def render_home_page():
                     } else if (!finished && vid.paused) {
                         startPlayback();
                     }
-                }, 4000);
+                }, 4200);
             }
 
             requestAnimationFrame(initIntro);
@@ -777,8 +797,8 @@ def render_home_page():
         <style>
         .wf-hero {
             text-align: center;
-            padding: 2.2rem 1rem 3.2rem 1rem;
-            min-height: 54vh;
+            padding: 2rem 1rem 2.8rem 1rem;
+            min-height: 54dvh;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -787,7 +807,7 @@ def render_home_page():
         .wf-quote-card {
             position: relative;
             max-width: 920px;
-            padding: 2.6rem 3rem 2.2rem 3rem;
+            padding: 2.2rem 2.4rem 1.8rem 2.4rem;
             border-top: 1px solid rgba(212, 175, 55, 0.35);
             border-bottom: 1px solid rgba(212, 175, 55, 0.35);
             background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.06), transparent 72%);
@@ -795,7 +815,7 @@ def render_home_page():
         .wf-quote-mark-open,
         .wf-quote-mark-close {
             font-family: 'Playfair Display', serif;
-            font-size: clamp(3.5rem, 6vw, 5.2rem);
+            font-size: clamp(3rem, 5.5vw, 5rem);
             color: rgba(212, 175, 55, 0.55);
             line-height: 0.5;
             user-select: none;
@@ -818,24 +838,24 @@ def render_home_page():
         }
         .wf-w-flavour {
             font-family: 'Lobster', cursive;
-            font-size: clamp(3.2rem, 6.6vw, 5.5rem);
+            font-size: clamp(2.8rem, 6.6vw, 5.5rem);
             color: #D4AF37;
             text-shadow: 0 4px 26px rgba(212, 175, 55, 0.35);
         }
         .wf-w-small {
-            font-size: clamp(1.3rem, 2.5vw, 2rem);
+            font-size: clamp(1.15rem, 2.5vw, 2rem);
             font-weight: 400;
             color: #E6DAC8;
             font-style: italic;
         }
         .wf-w-alive {
-            font-size: clamp(2.1rem, 4vw, 3.2rem);
+            font-size: clamp(1.85rem, 4vw, 3.2rem);
             font-weight: 800;
             color: #F5EFE6;
             letter-spacing: 1px;
         }
         .wf-w-darkness {
-            font-size: clamp(3rem, 6vw, 5.1rem);
+            font-size: clamp(2.7rem, 6vw, 5.1rem);
             font-weight: 900;
             background: linear-gradient(180deg, #FFF5DC 0%, #D4AF37 55%, #8C6A15 100%);
             -webkit-background-clip: text;
@@ -851,11 +871,14 @@ def render_home_page():
             font-weight: 600;
         }
         .wf-hero-scroll-cue {
-            margin-top: 2rem;
+            margin-top: 1.8rem;
             font-size: 0.76rem;
             letter-spacing: 2.4px;
             text-transform: uppercase;
             color: rgba(245, 239, 230, 0.45);
+        }
+        @media (max-width: 640px) {
+            .wf-quote-card { padding: 1.6rem 1.2rem 1.4rem 1.2rem; }
         }
         </style>
         <div id="wf-hero-anchor" class="wf-hero">
@@ -875,7 +898,7 @@ def render_home_page():
         """
     )
 
-    # 3. Full-Screen Seamless Scroll-Controlled Showcase (Auto-snap Chain)
+    # 3. Full-Screen Seamless Scroll-Controlled Showcase (Mobile & Desktop Touch/Wheel Locked)
     st.html(
         """
         <style>
@@ -884,14 +907,15 @@ def render_home_page():
             width: 100vw;
             left: 50%;
             transform: translateX(-50%);
-            height: 100vh;
-            min-height: 620px;
+            height: 100dvh;
+            min-height: 580px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
             background: radial-gradient(circle at 50% 48%, #4F3814 0%, #17130D 65%, #0D0C0A 100%);
             transition: background 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+            touch-action: none;
         }
         .wf-stage-visual-wrap {
             position: absolute;
@@ -903,7 +927,7 @@ def render_home_page():
             z-index: 1;
         }
         #wf-burger-canvas-video {
-            height: 100vh;
+            height: 100dvh;
             width: auto;
             max-width: 100vw;
             object-fit: contain;
@@ -945,12 +969,12 @@ def render_home_page():
             letter-spacing: 2.2px;
             text-transform: uppercase;
             color: #D4AF37;
-            margin-bottom: 0.55rem;
+            margin-bottom: 0.45rem;
             font-weight: 600;
         }
         .wf-side-subheader {
             font-family: 'Playfair Display', serif;
-            font-size: clamp(1.75rem, 2.8vw, 2.7rem);
+            font-size: clamp(1.5rem, 2.8vw, 2.7rem);
             color: #F5EFE6;
             line-height: 1.18;
             margin: 0;
@@ -958,8 +982,8 @@ def render_home_page():
         }
         .wf-side-body {
             color: #EAE0D2;
-            font-size: clamp(0.95rem, 1.25vw, 1.12rem);
-            line-height: 1.7;
+            font-size: clamp(0.9rem, 1.25vw, 1.12rem);
+            line-height: 1.65;
             margin: 0;
             text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
         }
@@ -984,7 +1008,7 @@ def render_home_page():
         }
         .wf-stage-progress {
             position: absolute;
-            right: 22px;
+            right: 14px;
             top: 50%;
             transform: translateY(-50%);
             z-index: 6;
@@ -1007,27 +1031,65 @@ def render_home_page():
             background: #D4AF37;
         }
         @media (max-width: 900px) {
+            #wf-fullscreen-stage {
+                flex-direction: column;
+                justify-content: space-between;
+                padding: 1.2rem 1rem;
+                box-sizing: border-box;
+            }
+            .wf-stage-visual-wrap {
+                position: relative;
+                inset: auto;
+                order: 2;
+                flex: 0 0 auto;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 0.4rem 0;
+            }
+            #wf-burger-canvas-video {
+                width: 88vw;
+                max-width: 390px;
+                height: auto;
+                aspect-ratio: 1 / 1;
+                max-height: 44dvh;
+                object-fit: contain;
+                -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 62%, transparent 98%);
+                mask-image: radial-gradient(circle at 50% 50%, #000 62%, transparent 98%);
+            }
             .wf-side-grid {
-                grid-template-columns: 1fr;
-                height: 88vh;
-                align-content: space-between;
-                padding: 1.5rem 1.2rem;
+                display: contents;
             }
             .wf-side-spacer { display: none; }
-            .wf-side-left, .wf-side-right {
+            .wf-side-left {
+                order: 1;
+                width: 92%;
                 text-align: center;
                 border: none;
-                background: rgba(14, 13, 11, 0.62);
+                border-bottom: 1px solid rgba(212, 175, 55, 0.35);
+                background: rgba(14, 13, 11, 0.6);
                 border-radius: 14px;
+                padding: 0.8rem 1rem;
+                z-index: 4;
+            }
+            .wf-side-right {
+                order: 3;
+                width: 92%;
+                text-align: center;
+                border: none;
+                border-top: 1px solid rgba(212, 175, 55, 0.35);
+                background: rgba(14, 13, 11, 0.6);
+                border-radius: 14px;
+                padding: 0.8rem 1rem;
+                z-index: 4;
             }
         }
         </style>
 
         <div id="wf-fullscreen-stage">
             <div class="wf-stage-visual-wrap">
-                <video id="wf-burger-canvas-video" muted playsinline preload="auto">
-                    <source src="./app/static/burger_prep.mp4" type="video/mp4" />
-                </video>
+                <video id="wf-burger-canvas-video" src="./app/static/burger_prep.mp4" autoplay muted playsinline webkit-playsinline preload="auto"></video>
             </div>
 
             <div class="wf-side-grid">
@@ -1105,7 +1167,36 @@ def render_home_page():
 
                 let currentStep = 0;
                 let isBusy = false;
+                let isVideoPrimed = false;
                 let animFrame = null;
+
+                // Prime video decoder on mobile so frame 0 renders immediately instead of black/empty
+                function primeMobileVideo() {
+                    if (isVideoPrimed) return;
+                    isVideoPrimed = true;
+                    video.muted = true;
+                    const p = video.play();
+                    if (p && typeof p.then === 'function') {
+                        p.then(() => {
+                            if (currentStep === 0 && !isBusy) {
+                                video.pause();
+                                video.currentTime = 0;
+                            }
+                        }).catch(() => { isVideoPrimed = false; });
+                    }
+                }
+
+                video.addEventListener('playing', function onFirstPlay() {
+                    if (currentStep === 0 && !isBusy) {
+                        video.pause();
+                        video.currentTime = 0;
+                    }
+                    isVideoPrimed = true;
+                    video.removeEventListener('playing', onFirstPlay);
+                });
+
+                video.load();
+                primeMobileVideo();
 
                 function getScrollContainer() {
                     const candidates = [
@@ -1125,8 +1216,17 @@ def render_home_page():
                     return document.scrollingElement || document.documentElement;
                 }
 
-                function smoothScrollToEl(targetEl, duration = 750) {
-                    if (!targetEl) return;
+                function easeInOutCubic(t) {
+                    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                }
+
+                // Smooth Ease-In and Ease-Out auto-scroll while strictly blocking user scroll
+                function smoothScrollToEl(targetEl, duration = 900, onDone = null) {
+                    if (!targetEl) {
+                        isBusy = false;
+                        return;
+                    }
+                    isBusy = true;
                     const sc = getScrollContainer();
                     const tRect = targetEl.getBoundingClientRect();
                     const scRect = (sc === document.documentElement || sc === document.scrollingElement)
@@ -1136,25 +1236,29 @@ def render_home_page():
                     const diff = (tRect.top - scRect.top);
                     const t0 = performance.now();
 
-                    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
-
                     function tick(now) {
                         const p = Math.min(1, (now - t0) / duration);
-                        sc.scrollTop = startTop + diff * easeOutCubic(p);
-                        if (p < 1) requestAnimationFrame(tick);
+                        sc.scrollTop = startTop + diff * easeInOutCubic(p);
+                        if (p < 1) {
+                            requestAnimationFrame(tick);
+                        } else {
+                            isBusy = false;
+                            if (onDone) onDone();
+                        }
                     }
                     requestAnimationFrame(tick);
                 }
 
-                function smoothScrollToTop(duration = 700) {
+                function smoothScrollToTop(duration = 850) {
+                    isBusy = true;
                     const sc = getScrollContainer();
                     const startTop = sc.scrollTop;
                     const t0 = performance.now();
-                    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
                     function tick(now) {
                         const p = Math.min(1, (now - t0) / duration);
-                        sc.scrollTop = startTop * (1 - easeOutCubic(p));
+                        sc.scrollTop = startTop * (1 - easeInOutCubic(p));
                         if (p < 1) requestAnimationFrame(tick);
+                        else isBusy = false;
                     }
                     requestAnimationFrame(tick);
                 }
@@ -1231,10 +1335,9 @@ def render_home_page():
                         video.pause();
                         const rewindMs = 950;
                         const t0 = performance.now();
-                        function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
                         function stepBack(now) {
                             const p = Math.min(1, (now - t0) / rewindMs);
-                            video.currentTime = startTime + distance * easeInOut(p);
+                            video.currentTime = startTime + distance * easeInOutCubic(p);
                             if (p >= 1) {
                                 video.currentTime = endTime;
                                 isBusy = false;
@@ -1252,125 +1355,163 @@ def render_home_page():
                     currentStep = nextIdx;
                     applySideText(currentStep);
                     playSegmentSmoothly(sections[currentStep].pct);
-                    setTimeout(() => { isBusy = false; }, 1250);
+                    // Failsafe unlock
+                    setTimeout(() => { isBusy = false; }, 2200);
                 }
 
-                if (window.__wfStageWheelHandler) {
-                    window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
-                }
-
-                window.__wfStageWheelHandler = function(e) {
-                    if (!document.body.contains(stage)) {
-                        window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
-                        return;
-                    }
-                    if (document.querySelector('[role="dialog"]') || document.querySelector('[data-testid="stPopoverBody"]')) {
-                        return;
-                    }
-                    if (Math.abs(e.deltaY) < 4) return;
+                // Unified directional navigation handler for both desktop wheel & mobile touch
+                function handleScrollDirection(dir, targetEl) {
+                    if (isBusy) return;
 
                     const stageRect = stage.getBoundingClientRect();
                     const testiAnchor = document.getElementById('wf-testimonials-anchor');
                     const reviewAnchor = document.getElementById('wf-review-anchor');
                     const testiBox = document.getElementById('wf-testi-box');
 
-                    // 1. At Hero -> single scroll snaps cleanly onto full-screen stage
-                    if (stageRect.top > 55 && e.deltaY > 0) {
-                        e.preventDefault();
-                        if (!isBusy) {
-                            isBusy = true;
-                            smoothScrollToEl(stage, 750);
-                            setTimeout(() => { isBusy = false; }, 820);
-                        }
+                    // 1. Hero -> Video Stage
+                    if (stageRect.top > 55) {
+                        if (dir > 0) smoothScrollToEl(stage, 900);
                         return;
                     }
 
-                    // 2. Locked inside full-screen stage
+                    // 2. Locked inside Video Stage
                     if (Math.abs(stageRect.top) <= 55) {
-                        e.preventDefault();
-                        if (isBusy) return;
-
-                        if (e.deltaY > 0) {
+                        if (dir > 0) {
                             if (currentStep < sections.length - 1) {
                                 goToStep(currentStep + 1);
                             } else if (testiAnchor) {
-                                isBusy = true;
-                                smoothScrollToEl(testiAnchor, 800);
-                                setTimeout(() => { isBusy = false; }, 860);
+                                smoothScrollToEl(testiAnchor, 900);
                             }
                         } else {
                             if (currentStep > 0) {
                                 goToStep(currentStep - 1);
                             } else {
-                                isBusy = true;
-                                smoothScrollToTop(700);
-                                setTimeout(() => { isBusy = false; }, 760);
+                                smoothScrollToTop(850);
                             }
                         }
                         return;
                     }
 
-                    // 3. Testimonials <-> Submit Review snap
+                    // 3. Testimonials <-> Submit Review
                     if (testiAnchor && reviewAnchor) {
                         const testiRect = testiAnchor.getBoundingClientRect();
                         const revRect = reviewAnchor.getBoundingClientRect();
 
-                        if (testiRect.top <= 140 && revRect.top > 120) {
-                            if (testiBox && testiBox.contains(e.target)) {
-                                return;
+                        if (testiRect.top <= 160 && revRect.top > 140) {
+                            if (testiBox && testiBox.contains(targetEl)) {
+                                return; // Let testimonials carousel handle internal swipe/wheel
                             }
-                            e.preventDefault();
-                            if (isBusy) return;
-
-                            if (e.deltaY > 0) {
-                                isBusy = true;
-                                smoothScrollToEl(reviewAnchor, 780);
-                                setTimeout(() => { isBusy = false; }, 850);
-                            } else {
-                                isBusy = true;
-                                smoothScrollToEl(stage, 780);
-                                setTimeout(() => { isBusy = false; }, 850);
-                            }
+                            if (dir > 0) smoothScrollToEl(reviewAnchor, 900);
+                            else smoothScrollToEl(stage, 900);
                             return;
                         }
 
-                        if (revRect.top <= 120 && revRect.top > -90 && e.deltaY < 0) {
-                            e.preventDefault();
-                            if (!isBusy) {
-                                isBusy = true;
-                                smoothScrollToEl(testiAnchor, 750);
-                                setTimeout(() => { isBusy = false; }, 820);
-                            }
+                        if (revRect.top <= 140 && dir < 0) {
+                            smoothScrollToEl(testiAnchor, 900);
                         }
+                    }
+                }
+
+                function isInteractiveOverlayOpen(target) {
+                    return Boolean(
+                        document.querySelector('[role="dialog"]') ||
+                        document.querySelector('[data-testid="stPopoverBody"]') ||
+                        (target && target.closest && target.closest('textarea, input, [role="dialog"], [data-testid="stPopoverBody"]'))
+                    );
+                }
+
+                // Clean previous listeners on Streamlit reruns
+                if (window.__wfStageWheelHandler) {
+                    window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
+                }
+                if (window.__wfTouchStartHandler) {
+                    window.removeEventListener('touchstart', window.__wfTouchStartHandler, true);
+                }
+                if (window.__wfTouchMoveHandler) {
+                    window.removeEventListener('touchmove', window.__wfTouchMoveHandler, true);
+                }
+                if (window.__wfTouchEndHandler) {
+                    window.removeEventListener('touchend', window.__wfTouchEndHandler, true);
+                }
+
+                // Desktop Wheel Lock
+                window.__wfStageWheelHandler = function(e) {
+                    if (!document.body.contains(stage)) return;
+                    if (isInteractiveOverlayOpen(e.target)) return;
+                    if (Math.abs(e.deltaY) < 4) return;
+
+                    const testiBox = document.getElementById('wf-testi-box');
+                    if (testiBox && testiBox.contains(e.target) && !isBusy) {
+                        return;
+                    }
+
+                    const reviewAnchor = document.getElementById('wf-review-anchor');
+                    const revRect = reviewAnchor ? reviewAnchor.getBoundingClientRect() : null;
+                    if (revRect && revRect.top <= 140 && e.deltaY > 0 && !isBusy) {
+                        return; // Allow reading/scrolling down inside Submit Review
+                    }
+
+                    e.preventDefault();
+                    handleScrollDirection(e.deltaY > 0 ? 1 : -1, e.target);
+                };
+
+                // Mobile Touch Scroll Lock + Auto-Scroll Trigger
+                let touchStartY = null;
+                let touchTriggered = false;
+
+                window.__wfTouchStartHandler = function(e) {
+                    if (!document.body.contains(stage)) return;
+                    primeMobileVideo();
+                    if (e.touches.length !== 1) return;
+                    touchStartY = e.touches[0].clientY;
+                    touchTriggered = false;
+                };
+
+                window.__wfTouchMoveHandler = function(e) {
+                    if (!document.body.contains(stage)) return;
+                    if (isInteractiveOverlayOpen(e.target)) return;
+
+                    // Strictly block user finger scroll while auto-scroll or video transition is running
+                    if (isBusy) {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    if (touchStartY === null || e.touches.length !== 1) return;
+                    const diff = touchStartY - e.touches[0].clientY;
+                    if (Math.abs(diff) < 10) return;
+
+                    const testiBox = document.getElementById('wf-testi-box');
+                    if (testiBox && testiBox.contains(e.target)) {
+                        return;
+                    }
+
+                    const reviewAnchor = document.getElementById('wf-review-anchor');
+                    const revRect = reviewAnchor ? reviewAnchor.getBoundingClientRect() : null;
+                    if (revRect && revRect.top <= 140 && diff > 0) {
+                        return;
+                    }
+
+                    // Block browser's raw finger drag and fire single ease-in-out scroll trigger
+                    e.preventDefault();
+                    if (!touchTriggered && Math.abs(diff) >= 24) {
+                        touchTriggered = true;
+                        handleScrollDirection(diff > 0 ? 1 : -1, e.target);
                     }
                 };
 
+                window.__wfTouchEndHandler = function() {
+                    touchStartY = null;
+                    touchTriggered = false;
+                };
+
                 window.addEventListener('wheel', window.__wfStageWheelHandler, { passive: false, capture: true });
-
-                let tY = null;
-                stage.addEventListener('touchstart', (e) => { tY = e.touches[0].clientY; }, { passive: true });
-                stage.addEventListener('touchend', (e) => {
-                    if (tY === null) return;
-                    const diff = tY - e.changedTouches[0].clientY;
-                    tY = null;
-                    if (Math.abs(diff) < 35 || isBusy) return;
-                    if (diff > 0) {
-                        if (currentStep < sections.length - 1) goToStep(currentStep + 1);
-                        else {
-                            const testiAnchor = document.getElementById('wf-testimonials-anchor');
-                            if (testiAnchor) smoothScrollToEl(testiAnchor, 800);
-                        }
-                    } else if (diff < 0 && currentStep > 0) {
-                        goToStep(currentStep - 1);
-                    }
-                }, { passive: true });
-
-                video.addEventListener('loadedmetadata', () => {
-                    video.currentTime = 0;
-                    video.pause();
-                });
+                window.addEventListener('touchstart', window.__wfTouchStartHandler, { passive: true, capture: true });
+                window.addEventListener('touchmove', window.__wfTouchMoveHandler, { passive: false, capture: true });
+                window.addEventListener('touchend', window.__wfTouchEndHandler, { passive: true, capture: true });
 
                 window.__wfSmoothScrollToEl = smoothScrollToEl;
+                window.__wfIsBusy = () => isBusy;
             }
 
             requestAnimationFrame(initStageScroll);
@@ -1439,6 +1580,7 @@ def render_home_page():
             perspective: 900px;
             user-select: none;
             cursor: ns-resize;
+            touch-action: none;
         }
         #wf-testi-box::before,
         #wf-testi-box::after {
@@ -1575,6 +1717,24 @@ def render_home_page():
                     }, pauseMs === 3400 ? 0 : pauseMs);
                 }
 
+                function handleBoxSwipe(dir) {
+                    if (window.__wfIsBusy && window.__wfIsBusy()) return;
+                    if (dir > 0 && activeIdx === cards.length - 1) {
+                        const revAnchor = document.getElementById('wf-review-anchor');
+                        if (revAnchor && window.__wfSmoothScrollToEl) {
+                            window.__wfSmoothScrollToEl(revAnchor, 900);
+                        }
+                    } else if (dir < 0 && activeIdx === 0) {
+                        const stageEl = document.getElementById('wf-fullscreen-stage');
+                        if (stageEl && window.__wfSmoothScrollToEl) {
+                            window.__wfSmoothScrollToEl(stageEl, 900);
+                        }
+                    } else {
+                        step(dir);
+                        resetAuto(5500);
+                    }
+                }
+
                 cards.forEach((card, idx) => {
                     card.addEventListener('click', () => {
                         activeIdx = idx;
@@ -1589,36 +1749,26 @@ def render_home_page():
                     e.stopPropagation();
                     if (wheelLock) return;
                     wheelLock = true;
-
-                    if (e.deltaY > 0 && activeIdx === cards.length - 1) {
-                        const revAnchor = document.getElementById('wf-review-anchor');
-                        if (revAnchor && window.__wfSmoothScrollToEl) {
-                            window.__wfSmoothScrollToEl(revAnchor, 780);
-                        }
-                    } else if (e.deltaY < 0 && activeIdx === 0) {
-                        const stageEl = document.getElementById('wf-fullscreen-stage');
-                        if (stageEl && window.__wfSmoothScrollToEl) {
-                            window.__wfSmoothScrollToEl(stageEl, 780);
-                        }
-                    } else {
-                        step(e.deltaY > 0 ? 1 : -1);
-                        resetAuto(5500);
-                    }
-
-                    setTimeout(() => { wheelLock = false; }, 360);
+                    handleBoxSwipe(e.deltaY > 0 ? 1 : -1);
+                    setTimeout(() => { wheelLock = false; }, 380);
                 }, { passive: false });
 
                 let tStartY = null;
-                box.addEventListener('touchstart', (e) => { tStartY = e.touches[0].clientY; }, { passive: true });
-                box.addEventListener('touchend', (e) => {
-                    if (tStartY === null) return;
-                    const d = tStartY - e.changedTouches[0].clientY;
-                    tStartY = null;
-                    if (Math.abs(d) > 25) {
-                        step(d > 0 ? 1 : -1);
-                        resetAuto(5500);
-                    }
+                let tHandled = false;
+                box.addEventListener('touchstart', (e) => {
+                    tStartY = e.touches[0].clientY;
+                    tHandled = false;
                 }, { passive: true });
+                box.addEventListener('touchmove', (e) => {
+                    if (tStartY === null) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const d = tStartY - e.touches[0].clientY;
+                    if (!tHandled && Math.abs(d) > 22) {
+                        tHandled = true;
+                        handleBoxSwipe(d > 0 ? 1 : -1);
+                    }
+                }, { passive: false });
 
                 layout();
                 if (window.__wfTestiInterval) clearInterval(window.__wfTestiInterval);
