@@ -1,6 +1,6 @@
 GLOBAL_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Lobster&family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,300;1,600&family=Great+Vibes&family=Lobster&family=Parisienne&family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
     --wf-bg: #121212;
@@ -61,7 +61,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     animation: wfBlurReveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Upper-Left Brand & Larger Logo (Never overlaps adjacent buttons) */
+/* Upper-Left Brand & Larger Logo */
 .wf-brand-wrap {
     display: flex;
     align-items: center;
@@ -88,7 +88,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     white-space: nowrap;
 }
 
-/* Responsive Navbar Row so Home never overlaps Brand on desktop or mobile */
+/* Responsive Navbar Row */
 .st-key-navbar_wrap [data-testid="stHorizontalBlock"] {
     align-items: center !important;
     gap: 0.65rem !important;
@@ -234,7 +234,7 @@ div.stFormSubmitButton > button:hover,
     pointer-events: none !important;
 }
 
-/* Buttery Pop-Out Animation for Basket Popover & '+'/'-' Fixes */
+/* Pop-Out Animation for Basket Popover & '+'/'-' Fixes */
 @keyframes wfBagPopOut {
     0% {
         opacity: 0;
@@ -284,7 +284,7 @@ div[data-testid="stPopoverBody"] .st-key-basket_order_btn button {
     font-size: 0.98rem !important;
 }
 
-/* Buttery Fade-In-Upwards Animation for Checkout / Confirmation Dialogs */
+/* Fade-In-Upwards Animation for Checkout & Confirmation Dialogs */
 @keyframes wfDialogFadeUp {
     0% {
         opacity: 0;
