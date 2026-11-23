@@ -333,7 +333,7 @@ def show_confirmation_dialog(order_id: str):
 def render_review_section(standalone: bool = False):
     st.html(
         """
-        <div id="wf-review-anchor" style="margin-top: 2.5rem; padding-top: 1.5rem;">
+        <div id="wf-review-anchor">
             <h2 class="wf-section-title">Submit a <span>Review</span></h2>
             <p class="wf-section-sub">Loved the crunch, smoke, and warmth? Your review goes live on our wall.</p>
         </div>
@@ -356,7 +356,7 @@ def render_review_section(standalone: bool = False):
             review_text = st.text_area(
                 "Your Review",
                 max_chars=800,
-                height=130,
+                height=115,
                 placeholder="Write your thoughts about the Tower Burger, Chicken Paratha Roll, or cafe vibe...",
                 key=f"rev_text_{standalone}",
             )
@@ -400,7 +400,7 @@ def render_review_page():
 def render_bug_page():
     st.html(
         """
-        <div style="margin-top: 1.5rem;">
+        <div>
             <h2 class="wf-section-title">Report a <span>Bug</span></h2>
             <p class="wf-section-sub">Spotted an issue on our website? Let us know and we will fix it right away.</p>
         </div>
@@ -490,10 +490,10 @@ def render_menu_page():
 
 
 # -----------------------------------------------------------------------------
-# Home Page (/)
+# Home Page (/) — 2D Multi-Directional Spatial Panning Experience
 # -----------------------------------------------------------------------------
 def render_home_page():
-    # 1. Full-Bleed Edge-to-Edge Intro Video (Covers Desktop & Crops Cleanly on Mobile, Zero White Borders)
+    # 0. Intro Video Overlay (Full-screen cover, zero white borders, 1s delayed Blur-In)
     st.html(
         """
         <style>
@@ -508,7 +508,6 @@ def render_home_page():
             opacity: 1;
             transition: opacity 0.95s ease;
         }
-        /* Subtle dark vignette seals outer edges completely */
         #wf-intro-overlay::after {
             content: "";
             position: absolute;
@@ -528,7 +527,6 @@ def render_home_page():
             height: 100dvh;
             object-fit: cover;
             object-position: center center;
-            /* Overscan crops out any baked-in white letterbox borders on desktop & mobile */
             transform: scale(1.16);
             opacity: 0;
             transition: opacity 1.0s ease;
@@ -609,7 +607,6 @@ def render_home_page():
                         overlay.classList.add('wf-removed');
                     }, 980);
 
-                    // 1 second after intro finishes fading out, fade-in-blur-in all website elements
                     setTimeout(() => {
                         if (appRoot) {
                             appRoot.classList.remove('wf-page-hidden');
@@ -665,354 +662,716 @@ def render_home_page():
         unsafe_allow_javascript=True,
     )
 
-    # 2. Sleek, Curvy, Stylish Quote Header
-    st.html(
-        """
-        <style>
-        .wf-hero {
-            text-align: center;
-            padding: 2rem 1rem 2.8rem 1rem;
-            min-height: 54dvh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        .wf-quote-card {
-            position: relative;
-            max-width: 960px;
-            padding: 2.3rem 2.6rem 1.9rem 2.6rem;
-            border-top: 1px solid rgba(212, 175, 55, 0.35);
-            border-bottom: 1px solid rgba(212, 175, 55, 0.35);
-            background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.06), transparent 72%);
-        }
-        .wf-quote-mark-open,
-        .wf-quote-mark-close {
-            font-family: 'Cormorant Garamond', serif;
-            font-style: italic;
-            font-size: clamp(3.4rem, 6vw, 5.4rem);
-            color: rgba(212, 175, 55, 0.55);
-            line-height: 0.45;
-            user-select: none;
-        }
-        .wf-quote-mark-open {
-            margin-bottom: 0.75rem;
-            display: block;
-            text-align: left;
-        }
-        .wf-quote-mark-close {
-            margin-top: 0.75rem;
-            display: block;
-            text-align: right;
-        }
-        .wf-hero-heading {
-            color: #F5EFE6;
-            line-height: 1.28;
-            margin: 0 auto;
-            font-weight: 400;
-        }
-        .wf-w-flavour {
-            font-family: 'Great Vibes', cursive;
-            font-size: clamp(3.6rem, 7.6vw, 6.4rem);
-            font-weight: 400;
-            color: #D4AF37;
-            letter-spacing: 1px;
-            text-shadow: 0 4px 28px rgba(212, 175, 55, 0.38);
-            padding-right: 4px;
-        }
-        .wf-w-small {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(1.3rem, 2.6vw, 2.15rem);
-            font-weight: 300;
-            color: #E6DAC8;
-            font-style: italic;
-            letter-spacing: 0.8px;
-        }
-        .wf-w-alive {
-            font-family: 'Parisienne', cursive;
-            font-size: clamp(2.4rem, 4.8vw, 3.9rem);
-            font-weight: 400;
-            color: #F5EFE6;
-            letter-spacing: 0.8px;
-            text-shadow: 0 2px 18px rgba(245, 239, 230, 0.22);
-        }
-        .wf-w-darkness {
-            font-family: 'Great Vibes', cursive;
-            font-size: clamp(3.5rem, 7.3vw, 6.1rem);
-            font-weight: 400;
-            letter-spacing: 1.2px;
-            padding: 0 6px;
-            background: linear-gradient(180deg, #FFF5DC 0%, #D4AF37 58%, #9A7418 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 6px 24px rgba(212, 175, 55, 0.28));
-        }
-        .wf-quote-attr {
-            margin-top: 1.1rem;
-            font-family: 'Cormorant Garamond', serif;
-            font-style: italic;
-            font-size: 1rem;
-            letter-spacing: 3.5px;
-            text-transform: uppercase;
-            color: #D4AF37;
-            font-weight: 600;
-        }
-        .wf-hero-scroll-cue {
-            margin-top: 1.8rem;
-            font-size: 0.76rem;
-            letter-spacing: 2.4px;
-            text-transform: uppercase;
-            color: rgba(245, 239, 230, 0.45);
-        }
-        @media (max-width: 640px) {
-            .wf-quote-card { padding: 1.6rem 1.1rem 1.4rem 1.1rem; }
-        }
-        </style>
-        <div id="wf-hero-anchor" class="wf-hero">
-            <blockquote class="wf-quote-card">
-                <span class="wf-quote-mark-open">“</span>
-                <h1 class="wf-hero-heading">
-                    <span class="wf-w-flavour">Flavour</span><span class="wf-w-small">, that comes</span>
-                    <span class="wf-w-alive"> Alive </span>
-                    <span class="wf-w-small">After </span>
-                    <span class="wf-w-darkness">Darkness</span>
-                </h1>
-                <span class="wf-quote-mark-close">”</span>
-                <div class="wf-quote-attr">— Waqar Foodies</div>
-            </blockquote>
-            <div class="wf-hero-scroll-cue">Scroll Down</div>
-        </div>
-        """
-    )
-
-    # 3. Full-Screen Seamless Scroll-Controlled Showcase
-    st.html(
-        """
-        <style>
-        #wf-fullscreen-stage {
-            position: relative;
-            width: 100vw;
-            left: 50%;
-            transform: translateX(-50%);
-            height: 100dvh;
-            min-height: 580px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: radial-gradient(circle at 50% 48%, #4F3814 0%, #17130D 65%, #0D0C0A 100%);
-            transition: background 1.1s cubic-bezier(0.22, 1, 0.36, 1);
-            touch-action: none;
-        }
-        .wf-stage-visual-wrap {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-            z-index: 1;
-        }
-        #wf-burger-canvas-video {
-            height: 100dvh;
-            width: auto;
-            max-width: 100vw;
-            object-fit: contain;
-            -webkit-mask-image: radial-gradient(ellipse 52% 68% at 50% 50%, #000 54%, rgba(0,0,0,0.45) 78%, transparent 100%);
-            mask-image: radial-gradient(ellipse 52% 68% at 50% 50%, #000 54%, rgba(0,0,0,0.45) 78%, transparent 100%);
-            opacity: 0.96;
-        }
-        .wf-side-grid {
-            position: relative;
-            z-index: 4;
-            width: 100%;
-            max-width: 1380px;
-            padding: 0 3.5vw;
-            display: grid;
-            grid-template-columns: 1fr 1.15fr 1fr;
-            align-items: center;
-            gap: 2rem;
-            pointer-events: none;
-        }
-        .wf-side-left {
-            text-align: left;
-            padding: 1.2rem 1.4rem;
-            border-left: 2px solid rgba(212, 175, 55, 0.65);
-            background: linear-gradient(90deg, rgba(14, 13, 11, 0.65), transparent);
-            border-radius: 0 14px 14px 0;
-        }
-        .wf-side-right {
-            text-align: right;
-            padding: 1.2rem 1.4rem;
-            border-right: 2px solid rgba(212, 175, 55, 0.65);
-            background: linear-gradient(-90deg, rgba(14, 13, 11, 0.65), transparent);
-            border-radius: 14px 0 0 14px;
-        }
-        .wf-side-spacer {
-            min-height: 10px;
-        }
-        .wf-source-label {
-            font-size: 0.76rem;
-            letter-spacing: 2.2px;
-            text-transform: uppercase;
-            color: #D4AF37;
-            margin-bottom: 0.45rem;
-            font-weight: 600;
-        }
-        .wf-side-subheader {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(1.5rem, 2.8vw, 2.7rem);
-            color: #F5EFE6;
-            line-height: 1.18;
-            margin: 0;
-            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
-        }
-        .wf-side-body {
-            color: #EAE0D2;
-            font-size: clamp(0.9rem, 1.25vw, 1.12rem);
-            line-height: 1.65;
-            margin: 0;
-            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
-        }
-        @keyframes wfTextBlurIn {
-            0% {
-                opacity: 0;
-                filter: blur(16px);
-                transform: translateY(14px);
-            }
-            100% {
-                opacity: 1;
-                filter: blur(0px);
-                transform: translateY(0);
-            }
-        }
-        .wf-side-animate {
-            animation: wfTextBlurIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-        .wf-side-hidden {
-            opacity: 0;
-            filter: blur(14px);
-        }
-        .wf-stage-progress {
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 6;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .wf-prog-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: rgba(245, 239, 230, 0.25);
-            border: 1px solid rgba(212, 175, 55, 0.45);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .wf-prog-dot.active {
-            height: 26px;
-            border-radius: 999px;
-            background: #D4AF37;
-        }
-        @media (max-width: 900px) {
-            #wf-fullscreen-stage {
-                flex-direction: column;
-                justify-content: space-between;
-                padding: 1.2rem 1rem;
-                box-sizing: border-box;
-            }
-            .wf-stage-visual-wrap {
-                position: relative;
-                inset: auto;
-                order: 2;
-                flex: 0 0 auto;
-                width: 100%;
+    # -------------------------------------------------------------------------
+    # Room (0, 0): Hero Quote
+    # -------------------------------------------------------------------------
+    with st.container(key="panel_hero"):
+        st.html(
+            """
+            <style>
+            .wf-hero {
+                text-align: center;
+                padding: 1rem;
                 display: flex;
+                flex-direction: column;
                 justify-content: center;
                 align-items: center;
-                margin: 0.4rem 0;
+            }
+            .wf-quote-card {
+                position: relative;
+                max-width: 960px;
+                padding: 2.3rem 2.6rem 1.9rem 2.6rem;
+                border-top: 1px solid rgba(212, 175, 55, 0.35);
+                border-bottom: 1px solid rgba(212, 175, 55, 0.35);
+                background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.06), transparent 72%);
+            }
+            .wf-quote-mark-open,
+            .wf-quote-mark-close {
+                font-family: 'Cormorant Garamond', serif;
+                font-style: italic;
+                font-size: clamp(3.4rem, 6vw, 5.4rem);
+                color: rgba(212, 175, 55, 0.55);
+                line-height: 0.45;
+                user-select: none;
+            }
+            .wf-quote-mark-open { margin-bottom: 0.75rem; display: block; text-align: left; }
+            .wf-quote-mark-close { margin-top: 0.75rem; display: block; text-align: right; }
+            .wf-hero-heading { color: #F5EFE6; line-height: 1.28; margin: 0 auto; font-weight: 400; }
+            .wf-w-flavour {
+                font-family: 'Great Vibes', cursive;
+                font-size: clamp(3.6rem, 7.6vw, 6.4rem);
+                font-weight: 400;
+                color: #D4AF37;
+                letter-spacing: 1px;
+                text-shadow: 0 4px 28px rgba(212, 175, 55, 0.38);
+                padding-right: 4px;
+            }
+            .wf-w-small {
+                font-family: 'Cormorant Garamond', serif;
+                font-size: clamp(1.3rem, 2.6vw, 2.15rem);
+                font-weight: 300;
+                color: #E6DAC8;
+                font-style: italic;
+                letter-spacing: 0.8px;
+            }
+            .wf-w-alive {
+                font-family: 'Parisienne', cursive;
+                font-size: clamp(2.4rem, 4.8vw, 3.9rem);
+                font-weight: 400;
+                color: #F5EFE6;
+                letter-spacing: 0.8px;
+                text-shadow: 0 2px 18px rgba(245, 239, 230, 0.22);
+            }
+            .wf-w-darkness {
+                font-family: 'Great Vibes', cursive;
+                font-size: clamp(3.5rem, 7.3vw, 6.1rem);
+                font-weight: 400;
+                letter-spacing: 1.2px;
+                padding: 0 6px;
+                background: linear-gradient(180deg, #FFF5DC 0%, #D4AF37 58%, #9A7418 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                filter: drop-shadow(0 6px 24px rgba(212, 175, 55, 0.28));
+            }
+            .wf-quote-attr {
+                margin-top: 1.1rem;
+                font-family: 'Cormorant Garamond', serif;
+                font-style: italic;
+                font-size: 1rem;
+                letter-spacing: 3.5px;
+                text-transform: uppercase;
+                color: #D4AF37;
+                font-weight: 600;
+            }
+            .wf-dir-hint {
+                margin-top: 2rem;
+                font-size: 0.78rem;
+                letter-spacing: 2.4px;
+                text-transform: uppercase;
+                color: rgba(245, 239, 230, 0.5);
+            }
+            @media (max-width: 640px) {
+                .wf-quote-card { padding: 1.5rem 1rem 1.3rem 1rem; }
+            }
+            </style>
+            <div class="wf-hero">
+                <blockquote class="wf-quote-card">
+                    <span class="wf-quote-mark-open">“</span>
+                    <h1 class="wf-hero-heading">
+                        <span class="wf-w-flavour">Flavour</span><span class="wf-w-small">, that comes</span>
+                        <span class="wf-w-alive"> Alive </span>
+                        <span class="wf-w-small">After </span>
+                        <span class="wf-w-darkness">Darkness</span>
+                    </h1>
+                    <span class="wf-quote-mark-close">”</span>
+                    <div class="wf-quote-attr">— Waqar Foodies</div>
+                </blockquote>
+                <div class="wf-dir-hint">Scroll Down to Begin &darr;</div>
+            </div>
+            """
+        )
+
+    # -------------------------------------------------------------------------
+    # Room (0, 1): Full-Screen Burger Ingredient Showcase (Scrolled DOWN from Hero)
+    # -------------------------------------------------------------------------
+    with st.container(key="panel_video"):
+        st.html(
+            """
+            <style>
+            #wf-fullscreen-stage {
+                position: relative;
+                width: 100vw;
+                height: 100dvh;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: radial-gradient(circle at 50% 48%, #4F3814 0%, #17130D 65%, #0D0C0A 100%);
+                transition: background 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+                touch-action: none;
+            }
+            .wf-stage-visual-wrap {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: none;
+                z-index: 1;
             }
             #wf-burger-canvas-video {
-                width: 88vw;
-                max-width: 390px;
-                height: auto;
-                aspect-ratio: 1 / 1;
-                max-height: 44dvh;
+                height: 100dvh;
+                width: auto;
+                max-width: 100vw;
                 object-fit: contain;
-                -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 62%, transparent 98%);
-                mask-image: radial-gradient(circle at 50% 50%, #000 62%, transparent 98%);
+                -webkit-mask-image: radial-gradient(ellipse 52% 68% at 50% 50%, #000 54%, rgba(0,0,0,0.45) 78%, transparent 100%);
+                mask-image: radial-gradient(ellipse 52% 68% at 50% 50%, #000 54%, rgba(0,0,0,0.45) 78%, transparent 100%);
+                opacity: 0.96;
             }
             .wf-side-grid {
-                display: contents;
-            }
-            .wf-side-spacer { display: none; }
-            .wf-side-left {
-                order: 1;
-                width: 92%;
-                text-align: center;
-                border: none;
-                border-bottom: 1px solid rgba(212, 175, 55, 0.35);
-                background: rgba(14, 13, 11, 0.6);
-                border-radius: 14px;
-                padding: 0.8rem 1rem;
+                position: relative;
                 z-index: 4;
+                width: 100%;
+                max-width: 1380px;
+                padding: 76px 3.5vw 0 3.5vw;
+                display: grid;
+                grid-template-columns: 1fr 1.15fr 1fr;
+                align-items: center;
+                gap: 2rem;
+                pointer-events: none;
+            }
+            .wf-side-left {
+                text-align: left;
+                padding: 1.2rem 1.4rem;
+                border-left: 2px solid rgba(212, 175, 55, 0.65);
+                background: linear-gradient(90deg, rgba(14, 13, 11, 0.65), transparent);
+                border-radius: 0 14px 14px 0;
             }
             .wf-side-right {
-                order: 3;
-                width: 92%;
+                text-align: right;
+                padding: 1.2rem 1.4rem;
+                border-right: 2px solid rgba(212, 175, 55, 0.65);
+                background: linear-gradient(-90deg, rgba(14, 13, 11, 0.65), transparent);
+                border-radius: 14px 0 0 14px;
+            }
+            .wf-side-spacer { min-height: 10px; }
+            .wf-source-label {
+                font-size: 0.76rem;
+                letter-spacing: 2.2px;
+                text-transform: uppercase;
+                color: #D4AF37;
+                margin-bottom: 0.45rem;
+                font-weight: 600;
+            }
+            .wf-side-subheader {
+                font-family: 'Playfair Display', serif;
+                font-size: clamp(1.45rem, 2.8vw, 2.7rem);
+                color: #F5EFE6;
+                line-height: 1.18;
+                margin: 0;
+                text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
+            }
+            .wf-side-body {
+                color: #EAE0D2;
+                font-size: clamp(0.88rem, 1.25vw, 1.12rem);
+                line-height: 1.65;
+                margin: 0;
+                text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
+            }
+            @keyframes wfTextBlurIn {
+                0% { opacity: 0; filter: blur(16px); transform: translateY(14px); }
+                100% { opacity: 1; filter: blur(0px); transform: translateY(0); }
+            }
+            .wf-side-animate { animation: wfTextBlurIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+            .wf-side-hidden { opacity: 0; filter: blur(14px); }
+            .wf-stage-progress {
+                position: absolute;
+                right: 16px;
+                top: 54%;
+                transform: translateY(-50%);
+                z-index: 6;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .wf-prog-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: rgba(245, 239, 230, 0.25);
+                border: 1px solid rgba(212, 175, 55, 0.45);
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .wf-prog-dot.active {
+                height: 26px;
+                border-radius: 999px;
+                background: #D4AF37;
+            }
+            @media (max-width: 900px) {
+                #wf-fullscreen-stage {
+                    flex-direction: column;
+                    justify-content: space-between;
+                    padding: 112px 1rem 52px 1rem;
+                    box-sizing: border-box;
+                }
+                .wf-stage-visual-wrap {
+                    position: relative;
+                    inset: auto;
+                    order: 2;
+                    flex: 0 0 auto;
+                    width: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin: 0.3rem 0;
+                }
+                #wf-burger-canvas-video {
+                    width: 82vw;
+                    max-width: 360px;
+                    height: auto;
+                    aspect-ratio: 1 / 1;
+                    max-height: 38dvh;
+                    object-fit: contain;
+                    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 62%, transparent 98%);
+                    mask-image: radial-gradient(circle at 50% 50%, #000 62%, transparent 98%);
+                }
+                .wf-side-grid { display: contents; }
+                .wf-side-spacer { display: none; }
+                .wf-side-left {
+                    order: 1;
+                    width: 92%;
+                    text-align: center;
+                    border: none;
+                    border-bottom: 1px solid rgba(212, 175, 55, 0.35);
+                    background: rgba(14, 13, 11, 0.6);
+                    border-radius: 14px;
+                    padding: 0.7rem 0.9rem;
+                    z-index: 4;
+                }
+                .wf-side-right {
+                    order: 3;
+                    width: 92%;
+                    text-align: center;
+                    border: none;
+                    border-top: 1px solid rgba(212, 175, 55, 0.35);
+                    background: rgba(14, 13, 11, 0.6);
+                    border-radius: 14px;
+                    padding: 0.7rem 0.9rem;
+                    z-index: 4;
+                }
+            }
+            </style>
+
+            <div id="wf-fullscreen-stage">
+                <div class="wf-stage-visual-wrap">
+                    <video id="wf-burger-canvas-video" src="./app/static/burger_prep.mp4" autoplay muted playsinline webkit-playsinline preload="auto"></video>
+                </div>
+
+                <div class="wf-side-grid">
+                    <div class="wf-side-left wf-side-animate" id="wf-left-text">
+                        <div class="wf-source-label" id="wf-ing-source">Sunlit Golden Wheat Fields</div>
+                        <h2 class="wf-side-subheader" id="wf-ing-sub">Toasted Sesame Brioche Bun</h2>
+                    </div>
+
+                    <div class="wf-side-spacer"></div>
+
+                    <div class="wf-side-right wf-side-animate" id="wf-right-text">
+                        <p class="wf-side-body" id="wf-ing-body">
+                            Harvested from golden wheat fields and baked pillowy-soft with toasted sesame seeds, splitting open in warm millstone mist.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="wf-stage-progress" id="wf-stage-dots"></div>
+            </div>
+            """
+        )
+
+    # -------------------------------------------------------------------------
+    # Room (1, 1): Order Now Spotlight (Pans RIGHT from Video)
+    # -------------------------------------------------------------------------
+    with st.container(key="panel_cta"):
+        st.html(
+            """
+            <style>
+            .wf-cta-spotlight {
                 text-align: center;
-                border: none;
-                border-top: 1px solid rgba(212, 175, 55, 0.35);
-                background: rgba(14, 13, 11, 0.6);
-                border-radius: 14px;
-                padding: 0.8rem 1rem;
-                z-index: 4;
+                max-width: 820px;
+                margin: 0 auto 1.4rem auto;
+            }
+            .wf-cta-cards {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1.4rem;
+                margin-top: 1.4rem;
+                margin-bottom: 1.6rem;
+            }
+            @media (max-width: 700px) {
+                .wf-cta-cards { grid-template-columns: 1fr; gap: 0.9rem; }
+            }
+            .wf-cta-mini {
+                background: linear-gradient(155deg, rgba(30, 28, 24, 0.95), rgba(18, 17, 15, 0.95));
+                border: 1px solid rgba(212, 175, 55, 0.32);
+                border-radius: 18px;
+                padding: 1.3rem 1.4rem;
+                text-align: left;
+                box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+            }
+            .wf-cta-mini-title {
+                font-family: 'Playfair Display', serif;
+                font-size: 1.45rem;
+                color: #F5EFE6;
+                font-weight: 700;
+            }
+            .wf-cta-mini-price {
+                color: #F0CA5A;
+                font-weight: 700;
+                font-size: 0.95rem;
+                margin: 0.25rem 0 0.5rem 0;
+            }
+            .wf-cta-mini-desc {
+                color: #CFC4B4;
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+            </style>
+            <div class="wf-cta-spotlight">
+                <h2 class="wf-section-title">Crafted For <span>Tonight</span></h2>
+                <p class="wf-section-sub">Freshly seared over live charcoal and delivered piping hot after sundown.</p>
+                <div class="wf-cta-cards">
+                    <div class="wf-cta-mini">
+                        <div class="wf-cta-mini-title">Tower Burger</div>
+                        <div class="wf-cta-mini-price">500/- PKR</div>
+                        <div class="wf-cta-mini-desc">Double flame-kissed beef patties, aged cheddar melt, garden greens, and house burger sauce on sesame brioche.</div>
+                    </div>
+                    <div class="wf-cta-mini">
+                        <div class="wf-cta-mini-title">Chicken Paratha Roll</div>
+                        <div class="wf-cta-mini-price">350/- PKR</div>
+                        <div class="wf-cta-mini-desc">Crispy golden paratha layered with chargrilled chicken tikka, red onions, and signature mint-garlic crema.</div>
+                    </div>
+                </div>
+            </div>
+            """
+        )
+        _, cta_col, _ = st.columns([1.3, 1.2, 1.3])
+        with cta_col:
+            if st.button("Order Now", key="home_order_now", type="primary", use_container_width=True):
+                st.switch_page(menu_page)
+        st.html('<div class="wf-dir-hint" style="text-align:center;">Scroll Down for Voices After Darkness &darr;</div>')
+
+    # -------------------------------------------------------------------------
+    # Room (1, 2): Voices After Darkness — Testimonials (Pans DOWN from Order Now)
+    # -------------------------------------------------------------------------
+    live_reviews = get_live_reviews_store()
+    n_reviews = len(live_reviews)
+    star_svg = (
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="#D4AF37">'
+        '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>'
+        '</svg>'
+    )
+
+    cards_html_parts = []
+    for idx, rev in enumerate(live_reviews):
+        diff = idx
+        if diff > n_reviews // 2:
+            diff -= n_reviews
+        elif diff < -(n_reviews // 2):
+            diff += n_reviews
+        pos_attr = str(diff) if abs(diff) <= 2 else "hidden"
+
+        safe_name = html.escape(str(rev["name"]))
+        safe_text = html.escape(str(rev["text"]))
+        stars_count = max(1, min(5, int(rev.get("stars", 5))))
+        stars_html = f'<span class="wf-svg-stars">{star_svg * stars_count}</span>'
+
+        cards_html_parts.append(
+            '<div class="wf-t-card" data-idx="' + str(idx) + '" data-pos="' + pos_attr + '">'
+            '<div class="wf-t-quote">“' + safe_text + '”</div>'
+            '<div class="wf-t-author"><span>— ' + safe_name + '</span>' + stars_html + '</div>'
+            '</div>'
+        )
+
+    cards_markup = "\n".join(cards_html_parts)
+
+    with st.container(key="panel_testi"):
+        testimonials_html = """
+            <div id="wf-testimonials-anchor">
+                <h2 class="wf-section-title">Voices After <span>Darkness</span></h2>
+                <p class="wf-section-sub">Scroll or select any review to explore what our regulars say.</p>
+            </div>
+
+            <style>
+            #wf-testi-box {
+                position: relative;
+                height: 380px;
+                max-width: 740px;
+                margin: 0 auto;
+                overflow: hidden;
+                border-radius: 24px;
+                background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.08), #141311 78%);
+                border: 1px solid rgba(212, 175, 55, 0.22);
+                perspective: 900px;
+                user-select: none;
+                cursor: ns-resize;
+                touch-action: none;
+            }
+            #wf-testi-box::before,
+            #wf-testi-box::after {
+                content: "";
+                position: absolute;
+                left: 0;
+                right: 0;
+                height: 70px;
+                z-index: 10;
+                pointer-events: none;
+            }
+            #wf-testi-box::before {
+                top: 0;
+                background: linear-gradient(180deg, #121212 10%, transparent 100%);
+            }
+            #wf-testi-box::after {
+                bottom: 0;
+                background: linear-gradient(0deg, #121212 10%, transparent 100%);
+            }
+            .wf-t-card {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                width: 86%;
+                max-width: 580px;
+                padding: 1.3rem 1.6rem;
+                border-radius: 18px;
+                background: linear-gradient(145deg, #1E1C17, #161512);
+                border: 1px solid rgba(212, 175, 55, 0.2);
+                transition: all 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+                box-sizing: border-box;
+            }
+            .wf-t-card[data-pos="0"] {
+                transform: translate(-50%, -50%) scale(1) rotateX(0deg);
+                filter: blur(0px);
+                opacity: 1;
+                z-index: 5;
+                border-color: #D4AF37;
+                box-shadow: 0 18px 42px rgba(0, 0, 0, 0.65), 0 0 24px rgba(212, 175, 55, 0.18);
+            }
+            .wf-t-card[data-pos="-1"] {
+                transform: translate(-50%, -138%) scale(0.86) rotateX(18deg) skewX(-1.5deg);
+                filter: blur(4px) contrast(0.9);
+                opacity: 0.45;
+                z-index: 3;
+            }
+            .wf-t-card[data-pos="1"] {
+                transform: translate(-50%, 38%) scale(0.86) rotateX(-18deg) skewX(1.5deg);
+                filter: blur(4px) contrast(0.9);
+                opacity: 0.45;
+                z-index: 3;
+            }
+            .wf-t-card[data-pos="-2"] {
+                transform: translate(-50%, -215%) scale(0.74) rotateX(28deg) skewX(-3deg);
+                filter: blur(8px);
+                opacity: 0.14;
+                z-index: 1;
+            }
+            .wf-t-card[data-pos="2"] {
+                transform: translate(-50%, 115%) scale(0.74) rotateX(-28deg) skewX(3deg);
+                filter: blur(8px);
+                opacity: 0.14;
+                z-index: 1;
+            }
+            .wf-t-card[data-pos="hidden"] {
+                transform: translate(-50%, 260%) scale(0.6);
+                opacity: 0;
+                pointer-events: none;
+                z-index: 0;
+            }
+            .wf-t-quote {
+                color: #F5EFE6;
+                font-size: 1rem;
+                line-height: 1.55;
+                font-style: italic;
+                margin-bottom: 0.7rem;
+            }
+            .wf-t-author {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: #D4AF37;
+                font-weight: 700;
+                font-size: 0.96rem;
+            }
+            .wf-svg-stars {
+                display: inline-flex;
+                gap: 3px;
+                align-items: center;
+            }
+            </style>
+
+            <div id="wf-testi-box">
+                __CARDS_MARKUP__
+            </div>
+            <div class="wf-dir-hint" style="text-align:center; margin-top:1.1rem;">&larr; Scroll Down to Leave Your Review</div>
+        """.replace("__CARDS_MARKUP__", cards_markup)
+
+        st.html(testimonials_html)
+
+    # -------------------------------------------------------------------------
+    # Room (0, 2): Submit Review (Pans LEFT from Testimonials)
+    # -------------------------------------------------------------------------
+    with st.container(key="panel_review"):
+        render_review_section(standalone=False)
+
+    # -------------------------------------------------------------------------
+    # 2D Spatial Camera & Compass Controller + Video + Testimonials JS
+    # -------------------------------------------------------------------------
+    st.html(
+        """
+        <style>
+        #wf-spatial-hud {
+            position: fixed;
+            bottom: 18px;
+            right: 22px;
+            z-index: 950;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(18, 17, 15, 0.82);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.32);
+            border-radius: 16px;
+            padding: 8px 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+        }
+        .wf-hud-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 10px);
+            grid-template-rows: repeat(3, 10px);
+            gap: 5px;
+        }
+        .wf-hud-node {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            background: rgba(245, 239, 230, 0.2);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            cursor: pointer;
+            transition: all 0.35s ease;
+        }
+        .wf-hud-node.active {
+            background: #D4AF37;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.75);
+            transform: scale(1.2);
+        }
+        .wf-hud-meta {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25;
+        }
+        .wf-hud-title {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: #F5EFE6;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+        .wf-hud-dir {
+            font-size: 0.7rem;
+            color: #D4AF37;
+            letter-spacing: 0.6px;
+        }
+        @media (max-width: 640px) {
+            #wf-spatial-hud {
+                bottom: 10px;
+                right: 12px;
+                padding: 6px 10px;
             }
         }
         </style>
 
-        <div id="wf-fullscreen-stage">
-            <div class="wf-stage-visual-wrap">
-                <video id="wf-burger-canvas-video" src="./app/static/burger_prep.mp4" autoplay muted playsinline webkit-playsinline preload="auto"></video>
+        <div id="wf-spatial-hud">
+            <div class="wf-hud-grid" id="wf-hud-grid"></div>
+            <div class="wf-hud-meta">
+                <span class="wf-hud-title" id="wf-hud-title">Quote</span>
+                <span class="wf-hud-dir" id="wf-hud-dir">Scroll &darr;</span>
             </div>
-
-            <div class="wf-side-grid">
-                <div class="wf-side-left wf-side-animate" id="wf-left-text">
-                    <div class="wf-source-label" id="wf-ing-source">Sunlit Golden Wheat Fields</div>
-                    <h2 class="wf-side-subheader" id="wf-ing-sub">Toasted Sesame Brioche Bun</h2>
-                </div>
-
-                <div class="wf-side-spacer"></div>
-
-                <div class="wf-side-right wf-side-animate" id="wf-right-text">
-                    <p class="wf-side-body" id="wf-ing-body">
-                        Harvested from golden wheat fields and baked pillowy-soft with toasted sesame seeds, splitting open in warm millstone mist.
-                    </p>
-                </div>
-            </div>
-
-            <div class="wf-stage-progress" id="wf-stage-dots"></div>
         </div>
 
         <script>
         (function() {
-            function initStageScroll() {
+            function initSpatialWorld() {
+                const rooms = [
+                    { sel: '.st-key-panel_hero',   col: 0, row: 0, title: 'Quote',        dir: 'Scroll \u2193' },
+                    { sel: '.st-key-panel_video',  col: 0, row: 1, title: 'Craft',        dir: 'Scroll \u2193 / \u2192' },
+                    { sel: '.st-key-panel_cta',    col: 1, row: 1, title: 'Signature',    dir: 'Scroll \u2193' },
+                    { sel: '.st-key-panel_testi',  col: 1, row: 2, title: 'Testimonials', dir: 'Scroll \u2190' },
+                    { sel: '.st-key-panel_review', col: 0, row: 2, title: 'Review',       dir: 'Scroll \u2191 Back' }
+                ];
+
+                const panels = rooms.map(r => document.querySelector(r.sel));
                 const stage = document.getElementById('wf-fullscreen-stage');
                 const video = document.getElementById('wf-burger-canvas-video');
+                const hud = document.getElementById('wf-spatial-hud');
+                const hudGrid = document.getElementById('wf-hud-grid');
+                const hudTitle = document.getElementById('wf-hud-title');
+                const hudDir = document.getElementById('wf-hud-dir');
+
+                if (panels.some(p => !p) || !stage || !video || !hud) {
+                    requestAnimationFrame(initSpatialWorld);
+                    return;
+                }
+
+                // Append HUD to body so it floats cleanly above all spatial panels
+                if (hud.parentElement !== document.body) {
+                    document.body.appendChild(hud);
+                }
+
+                let activeRoom = typeof window.__wfActiveRoom === 'number' ? window.__wfActiveRoom : 0;
+                let currentStep = typeof window.__wfVideoStep === 'number' ? window.__wfVideoStep : 0;
+                let isBusy = false;
+                let isVideoPrimed = false;
+                let animFrame = null;
+
+                // -------------------------------------------------------------
+                // Build 2D Compass HUD
+                // -------------------------------------------------------------
+                hudGrid.innerHTML = '';
+                const hudNodes = [];
+                rooms.forEach((r, idx) => {
+                    const node = document.createElement('div');
+                    node.className = 'wf-hud-node' + (idx === activeRoom ? ' active' : '');
+                    node.style.gridColumn = String(r.col + 1);
+                    node.style.gridRow = String(r.row + 1);
+                    node.title = r.title;
+                    node.addEventListener('click', () => {
+                        if (!isBusy) goToRoom(idx);
+                    });
+                    hudGrid.appendChild(node);
+                    hudNodes.push(node);
+                });
+
+                function applySpatialCamera(instant = false) {
+                    const target = rooms[activeRoom];
+                    panels.forEach((panel, i) => {
+                        const r = rooms[i];
+                        const dx = (r.col - target.col) * 100;
+                        const dy = (r.row - target.row) * 100;
+
+                        if (instant) {
+                            panel.style.transition = 'none';
+                        }
+                        panel.style.transform = `translate3d(${dx}vw, ${dy}dvh, 0)`;
+                        panel.style.opacity = (i === activeRoom) ? '1' : '0.25';
+                        panel.style.pointerEvents = (i === activeRoom) ? 'auto' : 'none';
+
+                        if (instant) {
+                            void panel.offsetWidth;
+                            panel.style.transition = '';
+                        }
+                    });
+
+                    hudNodes.forEach((n, i) => n.classList.toggle('active', i === activeRoom));
+                    if (hudTitle) hudTitle.textContent = target.title;
+                    if (hudDir) hudDir.textContent = target.dir;
+                }
+
+                function goToRoom(nextRoom) {
+                    if (nextRoom < 0 || nextRoom >= rooms.length || nextRoom === activeRoom) return;
+                    isBusy = true;
+                    activeRoom = nextRoom;
+                    window.__wfActiveRoom = activeRoom;
+                    applySpatialCamera(false);
+                    setTimeout(() => { isBusy = false; }, 980);
+                }
+
+                // -------------------------------------------------------------
+                // Burger Video Stage Setup
+                // -------------------------------------------------------------
                 const leftBox = document.getElementById('wf-left-text');
                 const rightBox = document.getElementById('wf-right-text');
                 const sourceEl = document.getElementById('wf-ing-source');
                 const subEl = document.getElementById('wf-ing-sub');
                 const bodyEl = document.getElementById('wf-ing-body');
                 const dotsWrap = document.getElementById('wf-stage-dots');
-
-                if (!stage || !video) {
-                    requestAnimationFrame(initStageScroll);
-                    return;
-                }
 
                 const sections = [
                     {
@@ -1052,11 +1411,6 @@ def render_home_page():
                     }
                 ];
 
-                let currentStep = 0;
-                let isBusy = false;
-                let isVideoPrimed = false;
-                let animFrame = null;
-
                 function primeMobileVideo() {
                     if (isVideoPrimed) return;
                     isVideoPrimed = true;
@@ -1084,76 +1438,12 @@ def render_home_page():
                 video.load();
                 primeMobileVideo();
 
-                function getScrollContainer() {
-                    const candidates = [
-                        document.querySelector('[data-testid="stMain"]'),
-                        document.querySelector('[data-testid="stAppViewContainer"]'),
-                        document.querySelector('section.main'),
-                        document.scrollingElement,
-                        document.documentElement
-                    ];
-                    for (const el of candidates) {
-                        if (!el) continue;
-                        const style = getComputedStyle(el);
-                        if (el.scrollHeight > el.clientHeight + 20 && /(auto|scroll)/.test(style.overflowY)) {
-                            return el;
-                        }
-                    }
-                    return document.scrollingElement || document.documentElement;
-                }
-
-                function easeInOutCubic(t) {
-                    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-                }
-
-                function smoothScrollToEl(targetEl, duration = 900, onDone = null) {
-                    if (!targetEl) {
-                        isBusy = false;
-                        return;
-                    }
-                    isBusy = true;
-                    const sc = getScrollContainer();
-                    const tRect = targetEl.getBoundingClientRect();
-                    const scRect = (sc === document.documentElement || sc === document.scrollingElement)
-                        ? { top: 0 }
-                        : sc.getBoundingClientRect();
-                    const startTop = sc.scrollTop;
-                    const diff = (tRect.top - scRect.top);
-                    const t0 = performance.now();
-
-                    function tick(now) {
-                        const p = Math.min(1, (now - t0) / duration);
-                        sc.scrollTop = startTop + diff * easeInOutCubic(p);
-                        if (p < 1) {
-                            requestAnimationFrame(tick);
-                        } else {
-                            isBusy = false;
-                            if (onDone) onDone();
-                        }
-                    }
-                    requestAnimationFrame(tick);
-                }
-
-                function smoothScrollToTop(duration = 850) {
-                    isBusy = true;
-                    const sc = getScrollContainer();
-                    const startTop = sc.scrollTop;
-                    const t0 = performance.now();
-                    function tick(now) {
-                        const p = Math.min(1, (now - t0) / duration);
-                        sc.scrollTop = startTop * (1 - easeInOutCubic(p));
-                        if (p < 1) requestAnimationFrame(tick);
-                        else isBusy = false;
-                    }
-                    requestAnimationFrame(tick);
-                }
-
                 dotsWrap.innerHTML = "";
                 sections.forEach((_, idx) => {
                     const dot = document.createElement('div');
-                    dot.className = 'wf-prog-dot' + (idx === 0 ? ' active' : '');
+                    dot.className = 'wf-prog-dot' + (idx === currentStep ? ' active' : '');
                     dot.addEventListener('click', () => {
-                        if (!isBusy) goToStep(idx);
+                        if (!isBusy) goToVideoStep(idx);
                     });
                     dotsWrap.appendChild(dot);
                 });
@@ -1181,6 +1471,10 @@ def render_home_page():
                         leftBox.classList.add('wf-side-animate');
                         rightBox.classList.add('wf-side-animate');
                     }, 120);
+                }
+
+                function easeInOutCubic(t) {
+                    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
                 }
 
                 function playSegmentSmoothly(targetPct) {
@@ -1234,60 +1528,115 @@ def render_home_page():
                     }
                 }
 
-                function goToStep(nextIdx) {
+                function goToVideoStep(nextIdx) {
                     if (nextIdx < 0 || nextIdx >= sections.length || nextIdx === currentStep) return;
                     isBusy = true;
                     currentStep = nextIdx;
+                    window.__wfVideoStep = currentStep;
                     applySideText(currentStep);
                     playSegmentSmoothly(sections[currentStep].pct);
                     setTimeout(() => { isBusy = false; }, 2200);
                 }
 
-                function handleScrollDirection(dir, targetEl) {
+                // -------------------------------------------------------------
+                // Testimonials Carousel Controller (Inside Room 3)
+                // -------------------------------------------------------------
+                const testiBox = document.getElementById('wf-testi-box');
+                const cards = testiBox ? Array.from(testiBox.querySelectorAll('.wf-t-card')) : [];
+                let activeTesti = 0;
+                let autoTimer = null;
+                let resumeTimeout = null;
+                let boxLock = false;
+
+                function layoutTesti() {
+                    const n = cards.length;
+                    cards.forEach((card, i) => {
+                        let diff = i - activeTesti;
+                        if (diff > Math.floor(n / 2)) diff -= n;
+                        if (diff < -Math.floor(n / 2)) diff += n;
+                        card.setAttribute('data-pos', Math.abs(diff) <= 2 ? String(diff) : 'hidden');
+                    });
+                }
+
+                function stepTesti(dir) {
+                    if (cards.length === 0) return;
+                    activeTesti = (activeTesti + dir + cards.length) % cards.length;
+                    layoutTesti();
+                }
+
+                function resetTestiAuto(pauseMs = 3400) {
+                    if (autoTimer) clearInterval(autoTimer);
+                    if (resumeTimeout) clearTimeout(resumeTimeout);
+                    resumeTimeout = setTimeout(() => {
+                        autoTimer = setInterval(() => stepTesti(1), 3400);
+                    }, pauseMs === 3400 ? 0 : pauseMs);
+                }
+
+                if (testiBox && cards.length > 0) {
+                    cards.forEach((card, idx) => {
+                        card.addEventListener('click', () => {
+                            activeTesti = idx;
+                            layoutTesti();
+                            resetTestiAuto(6000);
+                        });
+                    });
+                    layoutTesti();
+                    if (window.__wfTestiInterval) clearInterval(window.__wfTestiInterval);
+                    autoTimer = setInterval(() => stepTesti(1), 3400);
+                    window.__wfTestiInterval = autoTimer;
+                }
+
+                // -------------------------------------------------------------
+                // Master 2D Scroll / Swipe Dispatcher
+                // -------------------------------------------------------------
+                function handleMasterScroll(dir, targetEl) {
                     if (isBusy) return;
 
-                    const stageRect = stage.getBoundingClientRect();
-                    const testiAnchor = document.getElementById('wf-testimonials-anchor');
-                    const reviewAnchor = document.getElementById('wf-review-anchor');
-                    const testiBox = document.getElementById('wf-testi-box');
-
-                    if (stageRect.top > 55) {
-                        if (dir > 0) smoothScrollToEl(stage, 900);
+                    if (activeRoom === 0) {
+                        if (dir > 0) goToRoom(1); // Down -> Video Craft
                         return;
                     }
 
-                    if (Math.abs(stageRect.top) <= 55) {
+                    if (activeRoom === 1) {
                         if (dir > 0) {
-                            if (currentStep < sections.length - 1) {
-                                goToStep(currentStep + 1);
-                            } else if (testiAnchor) {
-                                smoothScrollToEl(testiAnchor, 900);
-                            }
+                            if (currentStep < sections.length - 1) goToVideoStep(currentStep + 1);
+                            else goToRoom(2); // Right -> Order Now Spotlight
                         } else {
-                            if (currentStep > 0) {
-                                goToStep(currentStep - 1);
-                            } else {
-                                smoothScrollToTop(850);
-                            }
+                            if (currentStep > 0) goToVideoStep(currentStep - 1);
+                            else goToRoom(0); // Up -> Hero Quote
                         }
                         return;
                     }
 
-                    if (testiAnchor && reviewAnchor) {
-                        const testiRect = testiAnchor.getBoundingClientRect();
-                        const revRect = reviewAnchor.getBoundingClientRect();
+                    if (activeRoom === 2) {
+                        if (dir > 0) goToRoom(3); // Down -> Testimonials
+                        else goToRoom(1); // Left -> Video Craft
+                        return;
+                    }
 
-                        if (testiRect.top <= 160 && revRect.top > 140) {
-                            if (testiBox && testiBox.contains(targetEl)) {
-                                return;
+                    if (activeRoom === 3) {
+                        if (testiBox && testiBox.contains(targetEl) && cards.length > 0) {
+                            if (dir > 0 && activeTesti === cards.length - 1) {
+                                goToRoom(4); // Left -> Submit Review
+                            } else if (dir < 0 && activeTesti === 0) {
+                                goToRoom(2); // Up -> Order Now Spotlight
+                            } else if (!boxLock) {
+                                boxLock = true;
+                                stepTesti(dir);
+                                resetTestiAuto(5500);
+                                setTimeout(() => { boxLock = false; }, 360);
                             }
-                            if (dir > 0) smoothScrollToEl(reviewAnchor, 900);
-                            else smoothScrollToEl(stage, 900);
                             return;
                         }
+                        if (dir > 0) goToRoom(4); // Left -> Submit Review
+                        else goToRoom(2); // Up -> Order Now Spotlight
+                        return;
+                    }
 
-                        if (revRect.top <= 140 && dir < 0) {
-                            smoothScrollToEl(testiAnchor, 900);
+                    if (activeRoom === 4) {
+                        const revPanel = panels[4];
+                        if (dir < 0 && revPanel.scrollTop <= 4) {
+                            goToRoom(3); // Right -> Testimonials
                         }
                     }
                 }
@@ -1300,32 +1649,35 @@ def render_home_page():
                     );
                 }
 
-                function detachAllScrollListeners() {
+                function detachAllSpatialListeners() {
                     if (window.__wfStageWheelHandler) window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
                     if (window.__wfTouchStartHandler) window.removeEventListener('touchstart', window.__wfTouchStartHandler, true);
                     if (window.__wfTouchMoveHandler) window.removeEventListener('touchmove', window.__wfTouchMoveHandler, true);
                     if (window.__wfTouchEndHandler) window.removeEventListener('touchend', window.__wfTouchEndHandler, true);
+                    if (hud && hud.parentElement) hud.style.display = 'none';
                 }
 
-                detachAllScrollListeners();
+                detachAllSpatialListeners();
+                hud.style.display = 'flex';
 
                 window.__wfStageWheelHandler = function(e) {
                     if (!document.body.contains(stage)) {
-                        detachAllScrollListeners();
+                        detachAllSpatialListeners();
                         return;
                     }
                     if (isInteractiveOverlayOpen(e.target)) return;
                     if (Math.abs(e.deltaY) < 4) return;
 
-                    const testiBox = document.getElementById('wf-testi-box');
-                    if (testiBox && testiBox.contains(e.target) && !isBusy) return;
-
-                    const reviewAnchor = document.getElementById('wf-review-anchor');
-                    const revRect = reviewAnchor ? reviewAnchor.getBoundingClientRect() : null;
-                    if (revRect && revRect.top <= 140 && e.deltaY > 0 && !isBusy) return;
+                    // Allow scrolling inside Review panel ONLY if it overflows vertically on tiny screens
+                    if (activeRoom === 4) {
+                        const revPanel = panels[4];
+                        const canScrollDown = revPanel.scrollTop + revPanel.clientHeight < revPanel.scrollHeight - 4;
+                        if (e.deltaY > 0 && canScrollDown) return;
+                        if (e.deltaY < 0 && revPanel.scrollTop > 4) return;
+                    }
 
                     e.preventDefault();
-                    handleScrollDirection(e.deltaY > 0 ? 1 : -1, e.target);
+                    handleMasterScroll(e.deltaY > 0 ? 1 : -1, e.target);
                 };
 
                 let touchStartY = null;
@@ -1333,7 +1685,7 @@ def render_home_page():
 
                 window.__wfTouchStartHandler = function(e) {
                     if (!document.body.contains(stage)) {
-                        detachAllScrollListeners();
+                        detachAllSpatialListeners();
                         return;
                     }
                     primeMobileVideo();
@@ -1344,7 +1696,7 @@ def render_home_page():
 
                 window.__wfTouchMoveHandler = function(e) {
                     if (!document.body.contains(stage)) {
-                        detachAllScrollListeners();
+                        detachAllSpatialListeners();
                         return;
                     }
                     if (isInteractiveOverlayOpen(e.target)) return;
@@ -1358,17 +1710,17 @@ def render_home_page():
                     const diff = touchStartY - e.touches[0].clientY;
                     if (Math.abs(diff) < 10) return;
 
-                    const testiBox = document.getElementById('wf-testi-box');
-                    if (testiBox && testiBox.contains(e.target)) return;
-
-                    const reviewAnchor = document.getElementById('wf-review-anchor');
-                    const revRect = reviewAnchor ? reviewAnchor.getBoundingClientRect() : null;
-                    if (revRect && revRect.top <= 140 && diff > 0) return;
+                    if (activeRoom === 4) {
+                        const revPanel = panels[4];
+                        const canScrollDown = revPanel.scrollTop + revPanel.clientHeight < revPanel.scrollHeight - 4;
+                        if (diff > 0 && canScrollDown) return;
+                        if (diff < 0 && revPanel.scrollTop > 4) return;
+                    }
 
                     e.preventDefault();
                     if (!touchTriggered && Math.abs(diff) >= 24) {
                         touchTriggered = true;
-                        handleScrollDirection(diff > 0 ? 1 : -1, e.target);
+                        handleMasterScroll(diff > 0 ? 1 : -1, e.target);
                     }
                 };
 
@@ -1382,280 +1734,17 @@ def render_home_page():
                 window.addEventListener('touchmove', window.__wfTouchMoveHandler, { passive: false, capture: true });
                 window.addEventListener('touchend', window.__wfTouchEndHandler, { passive: true, capture: true });
 
-                window.__wfSmoothScrollToEl = smoothScrollToEl;
-                window.__wfIsBusy = () => isBusy;
+                // Position all 5 spatial panels immediately on load/rerun
+                applySpatialCamera(true);
+                applySideText(currentStep);
             }
 
-            requestAnimationFrame(initStageScroll);
+            requestAnimationFrame(initSpatialWorld);
         })();
         </script>
         """,
         unsafe_allow_javascript=True,
     )
-
-    _, cta_col, _ = st.columns([1.4, 1.2, 1.4])
-    with cta_col:
-        st.write("")
-        st.write("")
-        if st.button("Order Now", key="home_order_now", type="primary", use_container_width=True):
-            st.switch_page(menu_page)
-
-    # 4. Bounded Auto-Scrolling & User-Scrollable Blurred Testimonials Carousel
-    live_reviews = get_live_reviews_store()
-    n_reviews = len(live_reviews)
-    star_svg = (
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="#D4AF37">'
-        '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>'
-        '</svg>'
-    )
-
-    cards_html_parts = []
-    for idx, rev in enumerate(live_reviews):
-        diff = idx
-        if diff > n_reviews // 2:
-            diff -= n_reviews
-        elif diff < -(n_reviews // 2):
-            diff += n_reviews
-        pos_attr = str(diff) if abs(diff) <= 2 else "hidden"
-
-        safe_name = html.escape(str(rev["name"]))
-        safe_text = html.escape(str(rev["text"]))
-        stars_count = max(1, min(5, int(rev.get("stars", 5))))
-        stars_html = f'<span class="wf-svg-stars">{star_svg * stars_count}</span>'
-
-        cards_html_parts.append(
-            '<div class="wf-t-card" data-idx="' + str(idx) + '" data-pos="' + pos_attr + '">'
-            '<div class="wf-t-quote">“' + safe_text + '”</div>'
-            '<div class="wf-t-author"><span>— ' + safe_name + '</span>' + stars_html + '</div>'
-            '</div>'
-        )
-
-    cards_markup = "\n".join(cards_html_parts)
-
-    testimonials_html = """
-        <div id="wf-testimonials-anchor" style="margin-top:3.2rem; padding-top:1.5rem;">
-            <h2 class="wf-section-title">Voices After <span>Darkness</span></h2>
-            <p class="wf-section-sub">Scroll or select any review to explore what our regulars say.</p>
-        </div>
-
-        <style>
-        #wf-testi-box {
-            position: relative;
-            height: 410px;
-            max-width: 740px;
-            margin: 0 auto;
-            overflow: hidden;
-            border-radius: 24px;
-            background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.08), #141311 78%);
-            border: 1px solid rgba(212, 175, 55, 0.22);
-            perspective: 900px;
-            user-select: none;
-            cursor: ns-resize;
-            touch-action: none;
-        }
-        #wf-testi-box::before,
-        #wf-testi-box::after {
-            content: "";
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 75px;
-            z-index: 10;
-            pointer-events: none;
-        }
-        #wf-testi-box::before {
-            top: 0;
-            background: linear-gradient(180deg, #121212 10%, transparent 100%);
-        }
-        #wf-testi-box::after {
-            bottom: 0;
-            background: linear-gradient(0deg, #121212 10%, transparent 100%);
-        }
-        .wf-t-card {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            width: 86%;
-            max-width: 580px;
-            padding: 1.35rem 1.7rem;
-            border-radius: 18px;
-            background: linear-gradient(145deg, #1E1C17, #161512);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-            transition: all 0.72s cubic-bezier(0.22, 1, 0.36, 1);
-            box-sizing: border-box;
-        }
-        .wf-t-card[data-pos="0"] {
-            transform: translate(-50%, -50%) scale(1) rotateX(0deg);
-            filter: blur(0px);
-            opacity: 1;
-            z-index: 5;
-            border-color: #D4AF37;
-            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.65), 0 0 24px rgba(212, 175, 55, 0.18);
-        }
-        .wf-t-card[data-pos="-1"] {
-            transform: translate(-50%, -138%) scale(0.86) rotateX(18deg) skewX(-1.5deg);
-            filter: blur(4px) contrast(0.9);
-            opacity: 0.45;
-            z-index: 3;
-        }
-        .wf-t-card[data-pos="1"] {
-            transform: translate(-50%, 38%) scale(0.86) rotateX(-18deg) skewX(1.5deg);
-            filter: blur(4px) contrast(0.9);
-            opacity: 0.45;
-            z-index: 3;
-        }
-        .wf-t-card[data-pos="-2"] {
-            transform: translate(-50%, -215%) scale(0.74) rotateX(28deg) skewX(-3deg);
-            filter: blur(8px);
-            opacity: 0.14;
-            z-index: 1;
-        }
-        .wf-t-card[data-pos="2"] {
-            transform: translate(-50%, 115%) scale(0.74) rotateX(-28deg) skewX(3deg);
-            filter: blur(8px);
-            opacity: 0.14;
-            z-index: 1;
-        }
-        .wf-t-card[data-pos="hidden"] {
-            transform: translate(-50%, 260%) scale(0.6);
-            opacity: 0;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .wf-t-quote {
-            color: #F5EFE6;
-            font-size: 1rem;
-            line-height: 1.55;
-            font-style: italic;
-            margin-bottom: 0.7rem;
-        }
-        .wf-t-author {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            color: #D4AF37;
-            font-weight: 700;
-            font-size: 0.96rem;
-        }
-        .wf-svg-stars {
-            display: inline-flex;
-            gap: 3px;
-            align-items: center;
-        }
-        </style>
-
-        <div id="wf-testi-box">
-            __CARDS_MARKUP__
-        </div>
-
-        <script>
-        (function() {
-            function initTestimonials() {
-                const box = document.getElementById('wf-testi-box');
-                if (!box) {
-                    requestAnimationFrame(initTestimonials);
-                    return;
-                }
-
-                const cards = Array.from(box.querySelectorAll('.wf-t-card'));
-                if (cards.length === 0) return;
-
-                let activeIdx = 0;
-                let autoTimer = null;
-                let resumeTimeout = null;
-                let wheelLock = false;
-
-                function layout() {
-                    const n = cards.length;
-                    cards.forEach((card, i) => {
-                        let diff = i - activeIdx;
-                        if (diff > Math.floor(n / 2)) diff -= n;
-                        if (diff < -Math.floor(n / 2)) diff += n;
-                        card.setAttribute('data-pos', Math.abs(diff) <= 2 ? String(diff) : 'hidden');
-                    });
-                }
-
-                function step(dir) {
-                    activeIdx = (activeIdx + dir + cards.length) % cards.length;
-                    layout();
-                }
-
-                function resetAuto(pauseMs = 3400) {
-                    if (autoTimer) clearInterval(autoTimer);
-                    if (resumeTimeout) clearTimeout(resumeTimeout);
-                    resumeTimeout = setTimeout(() => {
-                        autoTimer = setInterval(() => step(1), 3400);
-                    }, pauseMs === 3400 ? 0 : pauseMs);
-                }
-
-                function handleBoxSwipe(dir) {
-                    if (window.__wfIsBusy && window.__wfIsBusy()) return;
-                    if (dir > 0 && activeIdx === cards.length - 1) {
-                        const revAnchor = document.getElementById('wf-review-anchor');
-                        if (revAnchor && window.__wfSmoothScrollToEl) {
-                            window.__wfSmoothScrollToEl(revAnchor, 900);
-                        }
-                    } else if (dir < 0 && activeIdx === 0) {
-                        const stageEl = document.getElementById('wf-fullscreen-stage');
-                        if (stageEl && window.__wfSmoothScrollToEl) {
-                            window.__wfSmoothScrollToEl(stageEl, 900);
-                        }
-                    } else {
-                        step(dir);
-                        resetAuto(5500);
-                    }
-                }
-
-                cards.forEach((card, idx) => {
-                    card.addEventListener('click', () => {
-                        activeIdx = idx;
-                        layout();
-                        resetAuto(6000);
-                    });
-                });
-
-                box.addEventListener('wheel', (e) => {
-                    if (Math.abs(e.deltaY) < 6) return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (wheelLock) return;
-                    wheelLock = true;
-                    handleBoxSwipe(e.deltaY > 0 ? 1 : -1);
-                    setTimeout(() => { wheelLock = false; }, 380);
-                }, { passive: false });
-
-                let tStartY = null;
-                let tHandled = false;
-                box.addEventListener('touchstart', (e) => {
-                    tStartY = e.touches[0].clientY;
-                    tHandled = false;
-                }, { passive: true });
-                box.addEventListener('touchmove', (e) => {
-                    if (tStartY === null) return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const d = tStartY - e.touches[0].clientY;
-                    if (!tHandled && Math.abs(d) > 22) {
-                        tHandled = true;
-                        handleBoxSwipe(d > 0 ? 1 : -1);
-                    }
-                }, { passive: false });
-
-                layout();
-                if (window.__wfTestiInterval) clearInterval(window.__wfTestiInterval);
-                autoTimer = setInterval(() => step(1), 3400);
-                window.__wfTestiInterval = autoTimer;
-            }
-
-            requestAnimationFrame(initTestimonials);
-        })();
-        </script>
-    """.replace("__CARDS_MARKUP__", cards_markup)
-
-    st.html(testimonials_html, unsafe_allow_javascript=True)
-
-    # 5. Review Section
-    render_review_section(standalone=False)
 
 
 # -----------------------------------------------------------------------------
@@ -1760,10 +1849,8 @@ def render_navbar(active_page):
                         st.session_state.open_checkout_modal = True
                         st.rerun()
 
-    st.html('<div class="wf-nav-divider"></div>')
 
-
-# Render Dialogs, Common Navbar, and Active URL Page
+# Render Dialogs, Fixed Navbar, and Active URL Page
 if st.session_state.confirmed_order_id:
     show_confirmation_dialog(st.session_state.confirmed_order_id)
 elif st.session_state.open_checkout_modal:
