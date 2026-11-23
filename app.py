@@ -1,5 +1,6 @@
 import html
 from pathlib import Path
+from urllib.parse import urlparse
 import streamlit as st
 
 from utils.styles import GLOBAL_CSS
@@ -346,6 +347,94 @@ def detach_home_listeners_js():
 
 
 # -----------------------------------------------------------------------------
+# Custom 404 Page (/404)
+# -----------------------------------------------------------------------------
+def render_404_page():
+    detach_home_listeners_js()
+    missing_path = html.escape(str(st.session_state.get("_missing_path", "")))
+    path_badge = (
+        f'<div class="wf-404-path">Requested Path: <span>{missing_path}</span></div>'
+        if missing_path
+        else ""
+    )
+
+    page_404_html = """
+        <style>
+        .wf-404-wrap {
+            max-width: 720px;
+            margin: 1.5rem auto 2rem auto;
+            padding: 3rem 2rem;
+            text-align: center;
+            border-radius: 26px;
+            background: radial-gradient(circle at 50% 25%, rgba(212, 175, 55, 0.14), #151412 76%);
+            border: 1px solid rgba(212, 175, 55, 0.34);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+        }
+        .wf-404-code {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(5rem, 12vw, 8.5rem);
+            font-weight: 900;
+            line-height: 0.95;
+            background: linear-gradient(180deg, #FFF5DC 0%, #D4AF37 55%, #8C6A15 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 8px 26px rgba(212, 175, 55, 0.28));
+            margin-bottom: 0.5rem;
+        }
+        .wf-404-title {
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(2.4rem, 5vw, 3.6rem);
+            color: #F5EFE6;
+            margin: 0.2rem 0 0.8rem 0;
+            font-weight: 400;
+        }
+        .wf-404-msg {
+            color: #CFC4B4;
+            font-size: 1rem;
+            line-height: 1.65;
+            max-width: 500px;
+            margin: 0 auto 1.2rem auto;
+        }
+        .wf-404-path {
+            display: inline-block;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            border-radius: 999px;
+            padding: 0.3rem 1rem;
+            font-size: 0.85rem;
+            color: #CFC4B4;
+            margin-bottom: 0.8rem;
+        }
+        .wf-404-path span {
+            color: #F0CA5A;
+            font-weight: 700;
+        }
+        </style>
+        <div id="wf-404-marker" class="wf-404-wrap wf-blur-in">
+            <div class="wf-404-code">404</div>
+            <h2 class="wf-404-title">Lost in the Darkness</h2>
+            __PATH_BADGE__
+            <p class="wf-404-msg">
+                The page you are looking for does not exist or may have moved.
+                Return to Waqar Foodies or jump straight to our signature menu.
+            </p>
+        </div>
+    """.replace("__PATH_BADGE__", path_badge)
+
+    with st.container(key="notfound_page_wrap"):
+        st.html(page_404_html)
+        _, b_left, b_right, _ = st.columns([1.2, 1.3, 1.3, 1.2])
+        with b_left:
+            if st.button("Back to Home", key="err404_home", type="primary", use_container_width=True):
+                st.session_state._missing_path = ""
+                st.switch_page(home_page)
+        with b_right:
+            if st.button("Explore Menu", key="err404_menu", use_container_width=True):
+                st.session_state._missing_path = ""
+                st.switch_page(menu_page)
+
+
+# -----------------------------------------------------------------------------
 # Review & Bug Report Sections
 # -----------------------------------------------------------------------------
 def render_review_section(standalone: bool = False):
@@ -627,7 +716,6 @@ def render_home_page():
                         }
                     }, 980);
 
-                    // 1 second after intro finishes fading out, blur-in + rise navbar & hero quote
                     setTimeout(() => {
                         const nav = document.querySelector('.st-key-navbar_wrap');
                         const hero = document.querySelector('.wf-hero');
@@ -831,6 +919,7 @@ def render_home_page():
                 -webkit-mask-image: radial-gradient(ellipse 52% 68% at 50% 50%, #000 54%, rgba(0,0,0,0.45) 78%, transparent 100%);
                 mask-image: radial-gradient(ellipse 52% 68% at 50% 50%, #000 54%, rgba(0,0,0,0.45) 78%, transparent 100%);
                 opacity: 0.96;
+                transition: opacity 0.18s ease;
             }
             .wf-side-grid {
                 position: relative;
@@ -1370,86 +1459,56 @@ def render_home_page():
                     });
                 }
 
-                function applySpatialCamera(instant = false) {
-                    const target = rooms[activeRoom];
-                    panels.forEach((panel, i) => {
-                        const r = rooms[i];
-                        const dx = (r.col - target.col) * 100;
-                        const dy = (r.row - target.row) * 100;
-
-                        if (instant) {
-                            panel.style.transition = 'none';
-                        }
-                        panel.style.transform = `translate3d(${dx}vw, ${dy}dvh, 0)`;
-                        panel.style.opacity = (i === activeRoom) ? '1' : '0';
-                        panel.style.pointerEvents = (i === activeRoom) ? 'auto' : 'none';
-
-                        if (instant) {
-                            void panel.offsetWidth;
-                            panel.style.transition = '';
-                        }
-                    });
-
-                    hudNodes.forEach((n, i) => n.classList.toggle('active', i === activeRoom));
-                    if (hudTitle) hudTitle.textContent = target.title;
-                    if (hudDir) hudDir.textContent = target.dir;
-                }
-
-                function goToRoom(nextRoom) {
-                    if (nextRoom < 0 || nextRoom >= rooms.length || nextRoom === activeRoom) return;
-                    isBusy = true;
-                    activeRoom = nextRoom;
-                    window.__wfActiveRoom = activeRoom;
-                    applySpatialCamera(false);
-                    triggerRoomFadeUp(panels[activeRoom]);
-                    setTimeout(() => { isBusy = false; }, 980);
-                }
-
-                // Burger Video Stage Setup
-                const leftBox = document.getElementById('wf-left-text');
-                const rightBox = document.getElementById('wf-right-text');
-                const sourceEl = document.getElementById('wf-ing-source');
-                const subEl = document.getElementById('wf-ing-sub');
-                const bodyEl = document.getElementById('wf-ing-body');
-                const dotsWrap = document.getElementById('wf-stage-dots');
-
+                // Exact scene boundaries (each section plays only its own scene)
                 const sections = [
                     {
-                        pct: 0.00,
+                        startPct: 0.000,
+                        endPct: 0.165, // Whole Bun preparation in Wheat Field
                         source: "Sunlit Golden Wheat Fields",
                         sub: "Toasted Sesame Brioche Bun",
                         body: "Harvested from golden wheat fields and baked pillowy-soft with toasted sesame seeds, splitting open in warm millstone mist.",
                         bg: "radial-gradient(circle at 50% 48%, #4F3814 0%, #17130D 65%, #0D0C0A 100%)"
                     },
                     {
-                        pct: 0.23,
+                        startPct: 0.185,
+                        endPct: 0.295, // Whole Vegetable splash in Garden
                         source: "Morning Dew Vegetable Farms",
                         sub: "Crisp Lettuce, Vine Tomatoes & Red Onions",
                         body: "Dew-fresh emerald lettuce, sun-ripened tomato slices, and sharp purple onion rings cascading straight from fertile garden soil.",
                         bg: "radial-gradient(circle at 50% 48%, #153D23 0%, #0E1711 65%, #0B0E0C 100%)"
                     },
                     {
-                        pct: 0.43,
+                        startPct: 0.315,
+                        endPct: 0.480, // Whole Milk splash -> Double Cheddar & Pickles
                         source: "Lush Green Dairy Pastures",
                         sub: "Creamy Double Cheddar & Crisp Pickles",
                         body: "Wholesome pasture milk churned into two rich, velvety cheddar slices, layered generously over tangy dill pickles and greens.",
                         bg: "radial-gradient(circle at 50% 48%, #2E3F19 0%, #15170F 65%, #0C0D0A 100%)"
                     },
                     {
-                        pct: 0.64,
+                        startPct: 0.505,
+                        endPct: 0.685, // Whole Double Beef Patties over Flames
                         source: "Twilight Wood-Fired Grill",
                         sub: "Double Charcoal-Seared Beef Patties",
                         body: "Two thick, hand-pressed beef patties seared at dusk over roaring hardwood flames—locking in smoky char and sizzling juices.",
                         bg: "radial-gradient(circle at 50% 48%, #521A0E 0%, #180E0D 65%, #0D0A0A 100%)"
                     },
                     {
-                        pct: 0.98,
+                        startPct: 0.715,
+                        endPct: 0.985, // Whole Assembly Burst -> Finished Tower Burger in Darkness
                         source: "Waqar Foodies — After Darkness",
                         sub: "The Signature Double Tower Burger",
                         body: "Crowned with crushed peppercorns, signature house burger sauce, and warm golden bokeh—crafted to come alive after darkness.",
                         bg: "radial-gradient(circle at 50% 48%, #36240B 0%, #12100D 65%, #0A0A09 100%)"
                     }
                 ];
+
+                const leftBox = document.getElementById('wf-left-text');
+                const rightBox = document.getElementById('wf-right-text');
+                const sourceEl = document.getElementById('wf-ing-source');
+                const subEl = document.getElementById('wf-ing-sub');
+                const bodyEl = document.getElementById('wf-ing-body');
+                const dotsWrap = document.getElementById('wf-stage-dots');
 
                 function primeMobileVideo() {
                     if (isVideoPrimed) return;
@@ -1458,7 +1517,7 @@ def render_home_page():
                     const p = video.play();
                     if (p && typeof p.then === 'function') {
                         p.then(() => {
-                            if (currentStep === 0 && !isBusy) {
+                            if (activeRoom !== 1 && !isBusy) {
                                 video.pause();
                                 video.currentTime = 0;
                             }
@@ -1467,7 +1526,7 @@ def render_home_page():
                 }
 
                 video.addEventListener('playing', function onFirstPlay() {
-                    if (currentStep === 0 && !isBusy) {
+                    if (activeRoom !== 1 && !isBusy) {
                         video.pause();
                         video.currentTime = 0;
                     }
@@ -1513,58 +1572,66 @@ def render_home_page():
                     }, 120);
                 }
 
-                function easeInOutCubic(t) {
-                    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-                }
-
-                function playSegmentSmoothly(targetPct) {
+                // Plays ONLY the selected part's startPct -> endPct and slows gently to a stop (ease-out)
+                function playPartWithSlowEaseOut(stepIdx) {
                     if (animFrame) cancelAnimationFrame(animFrame);
-                    const duration = video.duration;
-                    if (!duration || isNaN(duration)) {
-                        isBusy = false;
-                        return;
-                    }
 
-                    const startTime = video.currentTime;
-                    const endTime = Math.min(duration - 0.05, Math.max(0, targetPct * duration));
-                    const distance = endTime - startTime;
-
-                    if (Math.abs(distance) < 0.04) {
-                        video.pause();
-                        isBusy = false;
-                        return;
-                    }
-
-                    if (distance > 0) {
-                        video.muted = true;
-                        video.playbackRate = 0.72;
-                        video.play().catch(() => {});
-
-                        function monitorForward() {
-                            if (video.currentTime >= endTime - 0.02 || video.ended) {
-                                video.pause();
-                                video.currentTime = endTime;
-                                isBusy = false;
-                                return;
-                            }
-                            animFrame = requestAnimationFrame(monitorForward);
+                    function beginPlay() {
+                        const duration = video.duration;
+                        if (!duration || isNaN(duration)) {
+                            isBusy = false;
+                            return;
                         }
-                        animFrame = requestAnimationFrame(monitorForward);
+
+                        const s = sections[stepIdx];
+                        const startTime = Math.max(0, s.startPct * duration);
+                        const endTime = Math.min(duration - 0.04, s.endPct * duration);
+                        const span = Math.max(0.2, endTime - startTime);
+
+                        // Brief cross-dissolve so the cut to the new part never flashes
+                        video.style.opacity = '0.28';
+                        video.pause();
+                        video.currentTime = startTime;
+
+                        setTimeout(() => {
+                            video.style.opacity = '0.96';
+                            video.muted = true;
+                            video.playbackRate = 0.85;
+                            video.play().catch(() => {});
+
+                            let lastRateTick = performance.now();
+
+                            function monitorPart(now) {
+                                const cur = video.currentTime;
+                                const progress = Math.max(0, Math.min(1, (cur - startTime) / span));
+
+                                if (cur >= endTime - 0.015 || progress >= 0.995 || video.ended) {
+                                    video.pause();
+                                    video.currentTime = endTime;
+                                    video.playbackRate = 0.85;
+                                    isBusy = false;
+                                    return;
+                                }
+
+                                // Smooth slow-motion deceleration (ease-out) during the final 45% of the part
+                                if (progress >= 0.55 && now - lastRateTick >= 95) {
+                                    const tail = (progress - 0.55) / 0.45;
+                                    const easedRate = Math.max(0.16, 0.85 * Math.pow(1 - tail, 1.45));
+                                    video.playbackRate = easedRate;
+                                    lastRateTick = now;
+                                }
+
+                                animFrame = requestAnimationFrame(monitorPart);
+                            }
+
+                            animFrame = requestAnimationFrame(monitorPart);
+                        }, 110);
+                    }
+
+                    if (video.readyState >= 1 && video.duration && !isNaN(video.duration)) {
+                        beginPlay();
                     } else {
-                        video.pause();
-                        const rewindMs = 950;
-                        const t0 = performance.now();
-                        function stepBack(now) {
-                            const p = Math.min(1, (now - t0) / rewindMs);
-                            video.currentTime = startTime + distance * easeInOutCubic(p);
-                            if (p >= 1) {
-                                video.currentTime = endTime;
-                                isBusy = false;
-                                return;
-                            }
-                            animFrame = requestAnimationFrame(stepBack);
-                        }
-                        animFrame = requestAnimationFrame(stepBack);
+                        video.addEventListener('loadedmetadata', beginPlay, { once: true });
                     }
                 }
 
@@ -1574,8 +1641,60 @@ def render_home_page():
                     currentStep = nextIdx;
                     window.__wfVideoStep = currentStep;
                     applySideText(currentStep);
-                    playSegmentSmoothly(sections[currentStep].pct);
-                    setTimeout(() => { isBusy = false; }, 2200);
+                    playPartWithSlowEaseOut(currentStep);
+                    setTimeout(() => { isBusy = false; }, 3400);
+                }
+
+                function applySpatialCamera(instant = false) {
+                    const target = rooms[activeRoom];
+                    panels.forEach((panel, i) => {
+                        const r = rooms[i];
+                        const dx = (r.col - target.col) * 100;
+                        const dy = (r.row - target.row) * 100;
+
+                        if (instant) {
+                            panel.style.transition = 'none';
+                        }
+                        panel.style.transform = `translate3d(${dx}vw, ${dy}dvh, 0)`;
+                        panel.style.opacity = (i === activeRoom) ? '1' : '0';
+                        panel.style.pointerEvents = (i === activeRoom) ? 'auto' : 'none';
+
+                        if (instant) {
+                            void panel.offsetWidth;
+                            panel.style.transition = '';
+                        }
+                    });
+
+                    hudNodes.forEach((n, i) => n.classList.toggle('active', i === activeRoom));
+                    if (hudTitle) hudTitle.textContent = target.title;
+                    if (hudDir) hudDir.textContent = target.dir;
+                }
+
+                function goToRoom(nextRoom) {
+                    if (nextRoom < 0 || nextRoom >= rooms.length || nextRoom === activeRoom) return;
+                    isBusy = true;
+                    const prevRoom = activeRoom;
+                    activeRoom = nextRoom;
+                    window.__wfActiveRoom = activeRoom;
+                    applySpatialCamera(false);
+                    triggerRoomFadeUp(panels[activeRoom]);
+
+                    // Entering Craft room: auto-play the active part's full sequence with slow ease-out
+                    if (activeRoom === 1) {
+                        if (prevRoom === 0) {
+                            currentStep = 0;
+                            window.__wfVideoStep = 0;
+                        }
+                        applySideText(currentStep);
+                        setTimeout(() => {
+                            playPartWithSlowEaseOut(currentStep);
+                        }, 420);
+                        setTimeout(() => { isBusy = false; }, 3400);
+                    } else {
+                        if (animFrame) cancelAnimationFrame(animFrame);
+                        video.pause();
+                        setTimeout(() => { isBusy = false; }, 980);
+                    }
                 }
 
                 // Testimonials Carousel Controller (Locked inside container — never scrolls page)
@@ -1777,26 +1896,38 @@ def render_home_page():
 
 
 # -----------------------------------------------------------------------------
-# Dedicated URL Pages Setup (st.navigation)
+# Dedicated URL Pages Setup (st.navigation) + 404 Route
 # -----------------------------------------------------------------------------
 home_page = st.Page(render_home_page, title="Waqar Foodies | Flavour After Darkness", default=True)
 menu_page = st.Page(render_menu_page, title="Menu | Waqar Foodies", url_path="menu")
 review_page = st.Page(render_review_page, title="Review | Waqar Foodies", url_path="review")
 bug_page = st.Page(render_bug_page, title="Report a Bug | Waqar Foodies", url_path="report-a-bug")
+not_found_page = st.Page(render_404_page, title="404 — Page Not Found | Waqar Foodies", url_path="404")
 
 current_page = st.navigation(
-    [home_page, menu_page, review_page, bug_page],
+    [home_page, menu_page, review_page, bug_page, not_found_page],
     position="hidden",
 )
 
+# Server-side catch for unknown initial URL paths -> switch to custom /404 page
+if not st.session_state.get("_checked_initial_url", False):
+    st.session_state._checked_initial_url = True
+    try:
+        raw_url = st.context.url or ""
+        req_path = urlparse(raw_url).path.strip("/").lower()
+    except Exception:
+        req_path = ""
+    if req_path and req_path not in {"menu", "review", "report-a-bug", "404"}:
+        st.session_state._missing_path = "/" + req_path
+        st.switch_page(not_found_page)
+
 
 # -----------------------------------------------------------------------------
-# Top Toolbar + Popover/Dialog Fade-Out Ghost Observer
+# Top Toolbar + Popover/Dialog Fade-Out Ghost Observer + 404 Modal Interceptor
 # -----------------------------------------------------------------------------
 def render_navbar(active_page):
     cart_items, total_qty, grand_total = get_cart_summary()
 
-    # Smooth glitch-free fade-out-blur-out for Basket Popover & Details Dialog
     st.html(
         """
         <script>
@@ -1808,6 +1939,25 @@ def render_navbar(active_page):
             let lastDlgRect = null;
             let popGhostActive = false;
             let dlgGhostActive = false;
+
+            function handleBuiltInStreamlit404(dlgNode) {
+                if (!dlgNode) return false;
+                const txt = (dlgNode.textContent || "").toLowerCase();
+                if (
+                    (txt.includes("page not found") || txt.includes("no corresponding file")) &&
+                    !dlgNode.querySelector('#wf-404-marker')
+                ) {
+                    dlgNode.style.display = 'none';
+                    const closeBtn = dlgNode.querySelector('button');
+                    if (closeBtn) closeBtn.click();
+                    if (window.location.pathname !== '/404' && !window.__wf404Redirected) {
+                        window.__wf404Redirected = true;
+                        window.location.replace(window.location.origin + '/404');
+                    }
+                    return true;
+                }
+                return false;
+            }
 
             function spawnPopoverGhost(popNode) {
                 if (!popNode || popGhostActive) return;
@@ -1889,13 +2039,25 @@ def render_navbar(active_page):
                 return node.querySelector ? node.querySelector(selector) : null;
             }
 
+            const existingDlg = document.querySelector('[role="dialog"]:not([data-wf-ghost])');
+            if (existingDlg) handleBuiltInStreamlit404(existingDlg);
+
             const observer = new MutationObserver((mutations) => {
                 const livePop = document.querySelector('[data-testid="stPopoverBody"]:not([data-wf-ghost])');
                 if (livePop) lastPopRect = livePop.getBoundingClientRect();
                 const liveDlg = document.querySelector('[role="dialog"]:not([data-wf-ghost])');
-                if (liveDlg) lastDlgRect = liveDlg.getBoundingClientRect();
+                if (liveDlg) {
+                    if (!handleBuiltInStreamlit404(liveDlg)) {
+                        lastDlgRect = liveDlg.getBoundingClientRect();
+                    }
+                }
 
                 for (const m of mutations) {
+                    for (const added of m.addedNodes) {
+                        const addDlg = findMatch(added, '[role="dialog"]');
+                        if (addDlg) handleBuiltInStreamlit404(addDlg);
+                    }
+
                     for (const removed of m.removedNodes) {
                         if (removed.getAttribute && removed.getAttribute('data-wf-ghost')) continue;
 
@@ -1916,6 +2078,11 @@ def render_navbar(active_page):
 
                         const remDlg = findMatch(removed, '[role="dialog"]');
                         if (remDlg && !dlgGhostActive && lastDlgRect) {
+                            const txt = (remDlg.textContent || "").toLowerCase();
+                            if (txt.includes("page not found") || txt.includes("no corresponding file")) {
+                                lastDlgRect = null;
+                                continue;
+                            }
                             dlgGhostActive = true;
                             const ghost = remDlg.cloneNode(true);
                             ghost.setAttribute('data-wf-ghost', '1');
