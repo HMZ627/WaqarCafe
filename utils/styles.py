@@ -39,7 +39,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     }
 }
 
-/* Fade-In-Blur-In Reveal */
+/* Fade-In-Blur-In Reveal (applied to content elements, never stAppViewContainer) */
 @keyframes wfBlurReveal {
     0% {
         opacity: 0;
@@ -61,6 +61,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 .wf-page-hidden {
     opacity: 0 !important;
     filter: blur(22px) !important;
+    pointer-events: none !important;
 }
 
 .wf-blur-in {
@@ -68,7 +69,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 }
 
 /* ============================================================================
-   Fixed Glassmorphic Top Toolbar (Always accessible across 2D rooms & pages)
+   Fixed Glassmorphic Top Toolbar
    ============================================================================ */
 .st-key-navbar_wrap {
     position: fixed !important;
@@ -77,7 +78,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     right: 0 !important;
     width: 100% !important;
     z-index: 1000 !important;
-    background: rgba(15, 14, 12, 0.84) !important;
+    background: rgba(15, 14, 12, 0.86) !important;
     backdrop-filter: blur(14px) !important;
     -webkit-backdrop-filter: blur(14px) !important;
     border-bottom: 1px solid rgba(212, 175, 55, 0.24) !important;
