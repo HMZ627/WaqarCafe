@@ -327,6 +327,24 @@ def show_confirmation_dialog(order_id: str):
         st.rerun()
 
 
+def detach_home_listeners_js():
+    """Ensure Home spatial scroll listeners and hidden-page states are cleared on subpages."""
+    st.html(
+        """
+        <script>
+        (function() {
+            if (window.__wfDetachSpatial) window.__wfDetachSpatial();
+            const nav = document.querySelector('.st-key-navbar_wrap');
+            if (nav) {
+                nav.classList.remove('wf-page-hidden');
+            }
+        })();
+        </script>
+        """,
+        unsafe_allow_javascript=True,
+    )
+
+
 # -----------------------------------------------------------------------------
 # Review & Bug Report Sections
 # -----------------------------------------------------------------------------
@@ -394,13 +412,18 @@ def render_review_section(standalone: bool = False):
 
 
 def render_review_page():
-    render_review_section(standalone=True)
+    detach_home_listeners_js()
+    with st.container(key="review_page_wrap"):
+        st.html('<div class="wf-blur-in">')
+        render_review_section(standalone=True)
+        st.html('</div>')
 
 
 def render_bug_page():
+    detach_home_listeners_js()
     st.html(
         """
-        <div>
+        <div class="wf-blur-in">
             <h2 class="wf-section-title">Report a <span>Bug</span></h2>
             <p class="wf-section-sub">Spotted an issue on our website? Let us know and we will fix it right away.</p>
         </div>
@@ -446,6 +469,7 @@ def render_bug_page():
 # Menu Page (/menu)
 # -----------------------------------------------------------------------------
 def render_menu_page():
+    detach_home_listeners_js()
     st.html(
         """
         <div class="wf-blur-in">
@@ -493,7 +517,7 @@ def render_menu_page():
 # Home Page (/) — 2D Multi-Directional Spatial Panning Experience
 # -----------------------------------------------------------------------------
 def render_home_page():
-    # 0. Intro Video Overlay (Full-screen cover, zero white borders, 1s delayed Blur-In)
+    # 0. Intro Video Overlay (NO appendChild — stays safely inside React tree)
     st.html(
         """
         <style>
@@ -566,34 +590,28 @@ def render_home_page():
 
         <script>
         (function() {
+            let tries = 0;
             function initIntro() {
                 const overlay = document.getElementById('wf-intro-overlay');
                 const vid = document.getElementById('wf-intro-video');
                 const skipBtn = document.getElementById('wf-intro-skip');
-                const appRoot = document.querySelector('[data-testid="stAppViewContainer"]');
+                const navBar = document.querySelector('.st-key-navbar_wrap');
+                const heroPanel = document.querySelector('.st-key-panel_hero');
 
                 if (!overlay || !vid) {
-                    requestAnimationFrame(initIntro);
+                    if (tries++ < 45) requestAnimationFrame(initIntro);
                     return;
-                }
-
-                if (overlay.parentElement !== document.body) {
-                    document.body.appendChild(overlay);
                 }
 
                 if (window.__wfIntroDone) {
                     overlay.classList.add('wf-removed');
-                    if (appRoot) {
-                        appRoot.classList.remove('wf-page-hidden');
-                        appRoot.classList.add('wf-blur-in');
-                    }
+                    if (navBar) navBar.classList.remove('wf-page-hidden');
+                    if (heroPanel) heroPanel.classList.remove('wf-page-hidden');
                     return;
                 }
 
-                if (appRoot) {
-                    appRoot.classList.remove('wf-blur-in');
-                    appRoot.classList.add('wf-page-hidden');
-                }
+                if (navBar) navBar.classList.add('wf-page-hidden');
+                if (heroPanel) heroPanel.classList.add('wf-page-hidden');
 
                 let finished = false;
 
@@ -604,15 +622,21 @@ def render_home_page():
                     overlay.style.opacity = '0';
 
                     setTimeout(() => {
-                        overlay.classList.add('wf-removed');
+                        if (document.body.contains(overlay)) {
+                            overlay.classList.add('wf-removed');
+                        }
                     }, 980);
 
+                    // 1 second after intro finishes fading out, blur-in navbar & hero
                     setTimeout(() => {
-                        if (appRoot) {
-                            appRoot.classList.remove('wf-page-hidden');
-                            void appRoot.offsetWidth;
-                            appRoot.classList.add('wf-blur-in');
-                        }
+                        const nav = document.querySelector('.st-key-navbar_wrap');
+                        const hero = document.querySelector('.st-key-panel_hero');
+                        [nav, hero].forEach((el) => {
+                            if (!el) return;
+                            el.classList.remove('wf-page-hidden');
+                            void el.offsetWidth;
+                            el.classList.add('wf-blur-in');
+                        });
                     }, 1950);
                 }
 
@@ -772,7 +796,7 @@ def render_home_page():
         )
 
     # -------------------------------------------------------------------------
-    # Room (0, 1): Full-Screen Burger Ingredient Showcase (Scrolled DOWN from Hero)
+    # Room (0, 1): Full-Screen Burger Ingredient Showcase
     # -------------------------------------------------------------------------
     with st.container(key="panel_video"):
         st.html(
@@ -969,7 +993,7 @@ def render_home_page():
         )
 
     # -------------------------------------------------------------------------
-    # Room (1, 1): Order Now Spotlight (Pans RIGHT from Video)
+    # Room (1, 1): Order Now Spotlight
     # -------------------------------------------------------------------------
     with st.container(key="panel_cta"):
         st.html(
@@ -1041,7 +1065,7 @@ def render_home_page():
         st.html('<div class="wf-dir-hint" style="text-align:center;">Scroll Down for Voices After Darkness &darr;</div>')
 
     # -------------------------------------------------------------------------
-    # Room (1, 2): Voices After Darkness — Testimonials (Pans DOWN from Order Now)
+    # Room (1, 2): Voices After Darkness — Testimonials
     # -------------------------------------------------------------------------
     live_reviews = get_live_reviews_store()
     n_reviews = len(live_reviews)
@@ -1196,13 +1220,13 @@ def render_home_page():
         st.html(testimonials_html)
 
     # -------------------------------------------------------------------------
-    # Room (0, 2): Submit Review (Pans LEFT from Testimonials)
+    # Room (0, 2): Submit Review
     # -------------------------------------------------------------------------
     with st.container(key="panel_review"):
         render_review_section(standalone=False)
 
     # -------------------------------------------------------------------------
-    # 2D Spatial Camera & Compass Controller + Video + Testimonials JS
+    # 2D Spatial Camera & Compass Controller (NO appendChild — clean React lifecycle)
     # -------------------------------------------------------------------------
     st.html(
         """
@@ -1278,6 +1302,21 @@ def render_home_page():
 
         <script>
         (function() {
+            let tries = 0;
+
+            function detachAllSpatialListeners() {
+                if (window.__wfStageWheelHandler) window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
+                if (window.__wfTouchStartHandler) window.removeEventListener('touchstart', window.__wfTouchStartHandler, true);
+                if (window.__wfTouchMoveHandler) window.removeEventListener('touchmove', window.__wfTouchMoveHandler, true);
+                if (window.__wfTouchEndHandler) window.removeEventListener('touchend', window.__wfTouchEndHandler, true);
+                if (window.__wfTestiInterval) {
+                    clearInterval(window.__wfTestiInterval);
+                    window.__wfTestiInterval = null;
+                }
+            }
+
+            window.__wfDetachSpatial = detachAllSpatialListeners;
+
             function initSpatialWorld() {
                 const rooms = [
                     { sel: '.st-key-panel_hero',   col: 0, row: 0, title: 'Quote',        dir: 'Scroll \u2193' },
@@ -1296,13 +1335,8 @@ def render_home_page():
                 const hudDir = document.getElementById('wf-hud-dir');
 
                 if (panels.some(p => !p) || !stage || !video || !hud) {
-                    requestAnimationFrame(initSpatialWorld);
+                    if (tries++ < 45) requestAnimationFrame(initSpatialWorld);
                     return;
-                }
-
-                // Append HUD to body so it floats cleanly above all spatial panels
-                if (hud.parentElement !== document.body) {
-                    document.body.appendChild(hud);
                 }
 
                 let activeRoom = typeof window.__wfActiveRoom === 'number' ? window.__wfActiveRoom : 0;
@@ -1311,9 +1345,7 @@ def render_home_page():
                 let isVideoPrimed = false;
                 let animFrame = null;
 
-                // -------------------------------------------------------------
                 // Build 2D Compass HUD
-                // -------------------------------------------------------------
                 hudGrid.innerHTML = '';
                 const hudNodes = [];
                 rooms.forEach((r, idx) => {
@@ -1363,9 +1395,7 @@ def render_home_page():
                     setTimeout(() => { isBusy = false; }, 980);
                 }
 
-                // -------------------------------------------------------------
                 // Burger Video Stage Setup
-                // -------------------------------------------------------------
                 const leftBox = document.getElementById('wf-left-text');
                 const rightBox = document.getElementById('wf-right-text');
                 const sourceEl = document.getElementById('wf-ing-source');
@@ -1538,9 +1568,7 @@ def render_home_page():
                     setTimeout(() => { isBusy = false; }, 2200);
                 }
 
-                // -------------------------------------------------------------
-                // Testimonials Carousel Controller (Inside Room 3)
-                // -------------------------------------------------------------
+                // Testimonials Carousel Controller
                 const testiBox = document.getElementById('wf-testi-box');
                 const cards = testiBox ? Array.from(testiBox.querySelectorAll('.wf-t-card')) : [];
                 let activeTesti = 0;
@@ -1569,6 +1597,7 @@ def render_home_page():
                     if (resumeTimeout) clearTimeout(resumeTimeout);
                     resumeTimeout = setTimeout(() => {
                         autoTimer = setInterval(() => stepTesti(1), 3400);
+                        window.__wfTestiInterval = autoTimer;
                     }, pauseMs === 3400 ? 0 : pauseMs);
                 }
 
@@ -1586,40 +1615,37 @@ def render_home_page():
                     window.__wfTestiInterval = autoTimer;
                 }
 
-                // -------------------------------------------------------------
-                // Master 2D Scroll / Swipe Dispatcher
-                // -------------------------------------------------------------
                 function handleMasterScroll(dir, targetEl) {
                     if (isBusy) return;
 
                     if (activeRoom === 0) {
-                        if (dir > 0) goToRoom(1); // Down -> Video Craft
+                        if (dir > 0) goToRoom(1);
                         return;
                     }
 
                     if (activeRoom === 1) {
                         if (dir > 0) {
                             if (currentStep < sections.length - 1) goToVideoStep(currentStep + 1);
-                            else goToRoom(2); // Right -> Order Now Spotlight
+                            else goToRoom(2);
                         } else {
                             if (currentStep > 0) goToVideoStep(currentStep - 1);
-                            else goToRoom(0); // Up -> Hero Quote
+                            else goToRoom(0);
                         }
                         return;
                     }
 
                     if (activeRoom === 2) {
-                        if (dir > 0) goToRoom(3); // Down -> Testimonials
-                        else goToRoom(1); // Left -> Video Craft
+                        if (dir > 0) goToRoom(3);
+                        else goToRoom(1);
                         return;
                     }
 
                     if (activeRoom === 3) {
                         if (testiBox && testiBox.contains(targetEl) && cards.length > 0) {
                             if (dir > 0 && activeTesti === cards.length - 1) {
-                                goToRoom(4); // Left -> Submit Review
+                                goToRoom(4);
                             } else if (dir < 0 && activeTesti === 0) {
-                                goToRoom(2); // Up -> Order Now Spotlight
+                                goToRoom(2);
                             } else if (!boxLock) {
                                 boxLock = true;
                                 stepTesti(dir);
@@ -1628,15 +1654,15 @@ def render_home_page():
                             }
                             return;
                         }
-                        if (dir > 0) goToRoom(4); // Left -> Submit Review
-                        else goToRoom(2); // Up -> Order Now Spotlight
+                        if (dir > 0) goToRoom(4);
+                        else goToRoom(2);
                         return;
                     }
 
                     if (activeRoom === 4) {
                         const revPanel = panels[4];
                         if (dir < 0 && revPanel.scrollTop <= 4) {
-                            goToRoom(3); // Right -> Testimonials
+                            goToRoom(3);
                         }
                     }
                 }
@@ -1645,20 +1671,11 @@ def render_home_page():
                     return Boolean(
                         document.querySelector('[role="dialog"]') ||
                         document.querySelector('[data-testid="stPopoverBody"]') ||
-                        (target && target.closest && target.closest('textarea, input, [role="dialog"], [data-testid="stPopoverBody"]'))
+                        (target && target.closest && target.closest('textarea, input, button, [role="dialog"], [data-testid="stPopoverBody"], .st-key-navbar_wrap'))
                     );
                 }
 
-                function detachAllSpatialListeners() {
-                    if (window.__wfStageWheelHandler) window.removeEventListener('wheel', window.__wfStageWheelHandler, true);
-                    if (window.__wfTouchStartHandler) window.removeEventListener('touchstart', window.__wfTouchStartHandler, true);
-                    if (window.__wfTouchMoveHandler) window.removeEventListener('touchmove', window.__wfTouchMoveHandler, true);
-                    if (window.__wfTouchEndHandler) window.removeEventListener('touchend', window.__wfTouchEndHandler, true);
-                    if (hud && hud.parentElement) hud.style.display = 'none';
-                }
-
                 detachAllSpatialListeners();
-                hud.style.display = 'flex';
 
                 window.__wfStageWheelHandler = function(e) {
                     if (!document.body.contains(stage)) {
@@ -1668,7 +1685,6 @@ def render_home_page():
                     if (isInteractiveOverlayOpen(e.target)) return;
                     if (Math.abs(e.deltaY) < 4) return;
 
-                    // Allow scrolling inside Review panel ONLY if it overflows vertically on tiny screens
                     if (activeRoom === 4) {
                         const revPanel = panels[4];
                         const canScrollDown = revPanel.scrollTop + revPanel.clientHeight < revPanel.scrollHeight - 4;
@@ -1688,6 +1704,7 @@ def render_home_page():
                         detachAllSpatialListeners();
                         return;
                     }
+                    if (isInteractiveOverlayOpen(e.target)) return;
                     primeMobileVideo();
                     if (e.touches.length !== 1) return;
                     touchStartY = e.touches[0].clientY;
@@ -1734,7 +1751,6 @@ def render_home_page():
                 window.addEventListener('touchmove', window.__wfTouchMoveHandler, { passive: false, capture: true });
                 window.addEventListener('touchend', window.__wfTouchEndHandler, { passive: true, capture: true });
 
-                // Position all 5 spatial panels immediately on load/rerun
                 applySpatialCamera(true);
                 applySideText(currentStep);
             }
@@ -1750,7 +1766,7 @@ def render_home_page():
 # -----------------------------------------------------------------------------
 # Dedicated URL Pages Setup (st.navigation)
 # -----------------------------------------------------------------------------
-home_page = st.Page(render_home_page, title="Waqar Foodies | Flavour After Darkness", url_path="home", default=True)
+home_page = st.Page(render_home_page, title="Waqar Foodies | Flavour After Darkness", default=True)
 menu_page = st.Page(render_menu_page, title="Menu | Waqar Foodies", url_path="menu")
 review_page = st.Page(render_review_page, title="Review | Waqar Foodies", url_path="review")
 bug_page = st.Page(render_bug_page, title="Report a Bug | Waqar Foodies", url_path="report-a-bug")
