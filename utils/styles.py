@@ -39,12 +39,12 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     }
 }
 
-/* Combined Fade-In-Upwards + Fade-In-Blur-In Reveal */
+/* Combined Fade-In + Blur-In + Upwards Reveal across all page containers */
 @keyframes wfBlurReveal {
     0% {
         opacity: 0;
         filter: blur(20px);
-        transform: translateY(34px) scale(0.985);
+        transform: translateY(32px) scale(0.985);
     }
     99% {
         opacity: 1;
@@ -64,13 +64,11 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     pointer-events: none !important;
 }
 
-.wf-blur-in {
+.wf-blur-in,
+.st-key-menu_page_wrap,
+.st-key-review_page_wrap,
+.st-key-bug_page_wrap {
     animation: wfBlurReveal 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-/* Apply Fade-In-Upwards + Blur-In to all Streamlit bordered form containers across pages */
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    animation: wfBlurReveal 1.05s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* ============================================================================
@@ -324,13 +322,13 @@ div.stFormSubmitButton > button:hover,
 }
 
 /* ============================================================================
-   Basket Dialogue: Fade-In-Blur-In Appear & Fade-Out-Blur-Out Disappear
+   Basket Popover Fade-In-Blur-In & Fade-Out-Blur-Out Animations
    ============================================================================ */
-@keyframes wfBagFadeBlurIn {
+@keyframes wfBagPopOut {
     0% {
         opacity: 0;
-        transform: scale(0.72) translate(16px, -18px);
-        filter: blur(16px);
+        transform: scale(0.72) translate(14px, -16px);
+        filter: blur(12px);
     }
     70% {
         opacity: 1;
@@ -344,7 +342,7 @@ div.stFormSubmitButton > button:hover,
     }
 }
 
-@keyframes wfBagFadeBlurOut {
+@keyframes wfBagPopClose {
     0% {
         opacity: 1;
         transform: scale(1) translate(0, 0);
@@ -352,12 +350,13 @@ div.stFormSubmitButton > button:hover,
     }
     100% {
         opacity: 0;
-        transform: scale(0.74) translate(16px, -18px);
-        filter: blur(16px);
+        transform: scale(0.72) translate(14px, -16px);
+        filter: blur(14px);
     }
 }
 
-div[data-testid="stPopoverBody"] {
+div[data-testid="stPopoverBody"],
+.wf-ghost-popover-out {
     z-index: 50000 !important;
     min-width: min(350px, 90vw) !important;
     background: linear-gradient(160deg, #1E1C18, #141311) !important;
@@ -366,22 +365,19 @@ div[data-testid="stPopoverBody"] {
     color: var(--wf-cream) !important;
     box-shadow: 0 22px 55px rgba(0, 0, 0, 0.78) !important;
     transform-origin: top right !important;
-    animation: wfBagFadeBlurIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    padding: 1rem !important;
+    box-sizing: border-box !important;
 }
 
-.wf-bag-exit-ghost {
+div[data-testid="stPopoverBody"] {
+    animation: wfBagPopOut 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+.wf-ghost-popover-out {
     position: fixed !important;
-    z-index: 50001 !important;
-    margin: 0 !important;
     pointer-events: none !important;
-    background: linear-gradient(160deg, #1E1C18, #141311) !important;
-    border: 1px solid rgba(212, 175, 55, 0.42) !important;
-    border-radius: 18px !important;
-    color: var(--wf-cream) !important;
-    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.78) !important;
-    transform-origin: top right !important;
-    overflow: hidden !important;
-    animation: wfBagFadeBlurOut 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    margin: 0 !important;
+    animation: wfBagPopClose 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
 div[data-testid="stPopoverBody"] div.stButton > button {
@@ -405,13 +401,13 @@ div[data-testid="stPopoverBody"] .st-key-basket_order_btn button {
 }
 
 /* ============================================================================
-   Details Filling & Confirmation Dialogs: Smooth Fade-In & Fade-Out
+   Details Filling & Confirmation Dialog Fade-In & Fade-Out Animations
    ============================================================================ */
 @keyframes wfDialogFadeIn {
     0% {
         opacity: 0;
         transform: translateY(34px) scale(0.97);
-        filter: blur(8px);
+        filter: blur(10px);
     }
     100% {
         opacity: 1;
@@ -429,31 +425,31 @@ div[data-testid="stPopoverBody"] .st-key-basket_order_btn button {
     100% {
         opacity: 0;
         transform: translateY(26px) scale(0.97);
-        filter: blur(8px);
+        filter: blur(10px);
     }
 }
 
-div[role="dialog"] {
+div[role="dialog"],
+.wf-ghost-dialog-out {
     z-index: 60000 !important;
     background: linear-gradient(165deg, #1C1A16 0%, #12110F 100%) !important;
     border: 1px solid rgba(212, 175, 55, 0.42) !important;
     border-radius: 22px !important;
     box-shadow: 0 30px 90px rgba(0, 0, 0, 0.88) !important;
-    animation: wfDialogFadeIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    color: var(--wf-cream) !important;
+    box-sizing: border-box !important;
 }
 
-.wf-dialog-exit-ghost {
+div[role="dialog"] {
+    animation: wfDialogFadeIn 0.44s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+.wf-ghost-dialog-out {
     position: fixed !important;
-    z-index: 60001 !important;
-    margin: 0 !important;
     pointer-events: none !important;
-    background: linear-gradient(165deg, #1C1A16 0%, #12110F 100%) !important;
-    border: 1px solid rgba(212, 175, 55, 0.42) !important;
-    border-radius: 22px !important;
-    color: var(--wf-cream) !important;
-    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.88) !important;
+    margin: 0 !important;
     overflow: hidden !important;
-    animation: wfDialogFadeOut 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    animation: wfDialogFadeOut 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
 /* Section Headers */
