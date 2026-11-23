@@ -351,7 +351,7 @@ def detach_home_listeners_js():
 def render_review_section(standalone: bool = False):
     st.html(
         """
-        <div id="wf-review-anchor">
+        <div id="wf-review-anchor" class="wf-blur-in">
             <h2 class="wf-section-title">Submit a <span>Review</span></h2>
             <p class="wf-section-sub">Loved the crunch, smoke, and warmth? Your review goes live on our wall.</p>
         </div>
@@ -414,55 +414,54 @@ def render_review_section(standalone: bool = False):
 def render_review_page():
     detach_home_listeners_js()
     with st.container(key="review_page_wrap"):
-        st.html('<div class="wf-blur-in">')
         render_review_section(standalone=True)
-        st.html('</div>')
 
 
 def render_bug_page():
     detach_home_listeners_js()
-    st.html(
-        """
-        <div class="wf-blur-in">
-            <h2 class="wf-section-title">Report a <span>Bug</span></h2>
-            <p class="wf-section-sub">Spotted an issue on our website? Let us know and we will fix it right away.</p>
-        </div>
-        """
-    )
-    _, center_col, _ = st.columns([1, 2.2, 1])
-    with center_col:
-        with st.container(border=True):
-            reporter_name = st.text_input(
-                "Your Name (Optional)",
-                max_chars=60,
-                placeholder="Anonymous",
-                key="bug_name",
-            )
-            bug_text = st.text_area(
-                "Describe the Bug",
-                max_chars=1000,
-                height=160,
-                placeholder="What happened, which page were you on, and what device/browser are you using?",
-                key="bug_text",
-            )
-            if st.button("Submit", key="bug_submit", type="primary", use_container_width=True):
-                clean_bug = sanitize_text(bug_text, max_len=1000)
-                clean_name = sanitize_text(reporter_name, max_len=60) or "Anonymous"
-                if len(clean_bug) < 8:
-                    st.error("Please provide a clear description of the bug.")
-                    return
+    with st.container(key="bug_page_wrap"):
+        st.html(
+            """
+            <div class="wf-blur-in">
+                <h2 class="wf-section-title">Report a <span>Bug</span></h2>
+                <p class="wf-section-sub">Spotted an issue on our website? Let us know and we will fix it right away.</p>
+            </div>
+            """
+        )
+        _, center_col, _ = st.columns([1, 2.2, 1])
+        with center_col:
+            with st.container(border=True):
+                reporter_name = st.text_input(
+                    "Your Name (Optional)",
+                    max_chars=60,
+                    placeholder="Anonymous",
+                    key="bug_name",
+                )
+                bug_text = st.text_area(
+                    "Describe the Bug",
+                    max_chars=1000,
+                    height=160,
+                    placeholder="What happened, which page were you on, and what device/browser are you using?",
+                    key="bug_text",
+                )
+                if st.button("Submit", key="bug_submit", type="primary", use_container_width=True):
+                    clean_bug = sanitize_text(bug_text, max_len=1000)
+                    clean_name = sanitize_text(reporter_name, max_len=60) or "Anonymous"
+                    if len(clean_bug) < 8:
+                        st.error("Please provide a clear description of the bug.")
+                        return
 
-                allowed, wait_sec = check_rate_limit("bug_submit", cooldown_seconds=15)
-                if not allowed:
-                    st.warning(f"Please wait {wait_sec}s before submitting another report.")
-                    return
+                    allowed, wait_sec = check_rate_limit("bug_submit", cooldown_seconds=15)
+                    if not allowed:
+                        st.warning(f"Please wait {wait_sec}s before submitting another report.")
+                        return
 
-                with st.spinner("Sending bug report..."):
-                    ok = send_bug_webhook(bug_text=clean_bug, reporter_name=clean_name)
-                if ok:
-                    st.success("Bug report received. Thank you for helping improve Waqar Foodies.")
-                else:
-                    st.error("Could not send bug report right now. Please try again later.")
+                    with st.spinner("Sending bug report..."):
+                        ok = send_bug_webhook(bug_text=clean_bug, reporter_name=clean_name)
+                    if ok:
+                        st.success("Bug report received. Thank you for helping improve Waqar Foodies.")
+                    else:
+                        st.error("Could not send bug report right now. Please try again later.")
 
 
 # -----------------------------------------------------------------------------
@@ -470,54 +469,55 @@ def render_bug_page():
 # -----------------------------------------------------------------------------
 def render_menu_page():
     detach_home_listeners_js()
-    st.html(
-        """
-        <div class="wf-blur-in">
-            <h2 class="wf-section-title">Our <span>Signature</span> Menu</h2>
-            <p class="wf-section-sub">Handcrafted fresh after sundown. Choose your cravings below.</p>
-        </div>
-        """
-    )
+    with st.container(key="menu_page_wrap"):
+        st.html(
+            """
+            <div class="wf-blur-in">
+                <h2 class="wf-section-title">Our <span>Signature</span> Menu</h2>
+                <p class="wf-section-sub">Handcrafted fresh after sundown. Choose your cravings below.</p>
+            </div>
+            """
+        )
 
-    col1, col2 = st.columns(2, gap="large")
-    for col, item_key in zip([col1, col2], ["tower_burger", "paratha_roll"]):
-        item = MENU_ITEMS[item_key]
-        with col:
-            with st.container():
-                img_path = Path(item["image"])
-                img_html = (
-                    f'<img src="./app/{item["image"]}" style="width:100%; height:230px; object-fit:cover; border-radius:14px;" alt="{item["name"]}"/>'
-                    if img_path.exists()
-                    else f'<div class="wf-menu-placeholder">{item["name"]}</div>'
-                )
-                card_html = """
-                    <div class="wf-menu-card wf-blur-in">
-                        __IMG__
-                        <div class="wf-menu-title">__NAME__</div>
-                        <div class="wf-menu-price">__PRICE__/- PKR</div>
-                        <div class="wf-menu-desc">__DESC__</div>
-                    </div>
-                """.replace("__IMG__", img_html).replace("__NAME__", item["name"]).replace("__PRICE__", str(item["price"])).replace("__DESC__", item["desc"])
-                st.html(card_html)
-                b1, b2 = st.columns(2)
-                with b1:
-                    if st.button("Order now", key=f"order_now_{item_key}", type="primary", use_container_width=True):
-                        if st.session_state.cart.get(item_key, 0) == 0:
+        col1, col2 = st.columns(2, gap="large")
+        for col, item_key in zip([col1, col2], ["tower_burger", "paratha_roll"]):
+            item = MENU_ITEMS[item_key]
+            with col:
+                with st.container():
+                    img_path = Path(item["image"])
+                    img_html = (
+                        f'<img src="./app/{item["image"]}" style="width:100%; height:230px; object-fit:cover; border-radius:14px;" alt="{item["name"]}"/>'
+                        if img_path.exists()
+                        else f'<div class="wf-menu-placeholder">{item["name"]}</div>'
+                    )
+                    card_html = """
+                        <div class="wf-menu-card wf-blur-in">
+                            __IMG__
+                            <div class="wf-menu-title">__NAME__</div>
+                            <div class="wf-menu-price">__PRICE__/- PKR</div>
+                            <div class="wf-menu-desc">__DESC__</div>
+                        </div>
+                    """.replace("__IMG__", img_html).replace("__NAME__", item["name"]).replace("__PRICE__", str(item["price"])).replace("__DESC__", item["desc"])
+                    st.html(card_html)
+                    b1, b2 = st.columns(2)
+                    with b1:
+                        if st.button("Order now", key=f"order_now_{item_key}", type="primary", use_container_width=True):
+                            if st.session_state.cart.get(item_key, 0) == 0:
+                                add_to_cart(item_key, 1)
+                            st.session_state.open_checkout_modal = True
+                            st.rerun()
+                    with b2:
+                        if st.button("Add to Order", key=f"add_order_{item_key}", use_container_width=True):
                             add_to_cart(item_key, 1)
-                        st.session_state.open_checkout_modal = True
-                        st.rerun()
-                with b2:
-                    if st.button("Add to Order", key=f"add_order_{item_key}", use_container_width=True):
-                        add_to_cart(item_key, 1)
-                        st.toast(f"Added {item['name']} to your order.")
-                        st.rerun()
+                            st.toast(f"Added {item['name']} to your order.")
+                            st.rerun()
 
 
 # -----------------------------------------------------------------------------
 # Home Page (/) — 2D Multi-Directional Spatial Panning Experience
 # -----------------------------------------------------------------------------
 def render_home_page():
-    # 0. Intro Video Overlay (NO appendChild — stays safely inside React tree)
+    # 0. Intro Video Overlay
     st.html(
         """
         <style>
@@ -627,7 +627,7 @@ def render_home_page():
                         }
                     }, 980);
 
-                    // 1 second after intro finishes fading out, blur-in navbar & inner hero quote
+                    // 1 second after intro finishes fading out, blur-in + rise navbar & hero quote
                     setTimeout(() => {
                         const nav = document.querySelector('.st-key-navbar_wrap');
                         const hero = document.querySelector('.wf-hero');
@@ -790,7 +790,7 @@ def render_home_page():
                     <span class="wf-quote-mark-close">”</span>
                     <div class="wf-quote-attr">— Waqar Foodies</div>
                 </blockquote>
-                <div class="wf-dir-hint">Scroll Down to Begin &darr;</div>
+                <div class="wf-dir-hint">&darr;</div>
             </div>
             """
         )
@@ -883,7 +883,7 @@ def render_home_page():
                 text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
             }
             @keyframes wfTextBlurIn {
-                0% { opacity: 0; filter: blur(16px); transform: translateY(14px); }
+                0% { opacity: 0; filter: blur(16px); transform: translateY(18px); }
                 100% { opacity: 1; filter: blur(0px); transform: translateY(0); }
             }
             .wf-side-animate { animation: wfTextBlurIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
@@ -916,7 +916,7 @@ def render_home_page():
                 #wf-fullscreen-stage {
                     flex-direction: column;
                     justify-content: space-between;
-                    padding: 112px 1rem 52px 1rem;
+                    padding: 112px 1rem 56px 1rem;
                     box-sizing: border-box;
                 }
                 .wf-stage-visual-wrap {
@@ -1040,7 +1040,7 @@ def render_home_page():
                 line-height: 1.5;
             }
             </style>
-            <div class="wf-cta-spotlight">
+            <div class="wf-cta-spotlight wf-room-anim">
                 <h2 class="wf-section-title">Crafted For <span>Tonight</span></h2>
                 <p class="wf-section-sub">Freshly seared over live charcoal and delivered piping hot after sundown.</p>
                 <div class="wf-cta-cards">
@@ -1062,7 +1062,6 @@ def render_home_page():
         with cta_col:
             if st.button("Order Now", key="home_order_now", type="primary", use_container_width=True):
                 st.switch_page(menu_page)
-        st.html('<div class="wf-dir-hint" style="text-align:center;">Scroll Down for Voices After Darkness &darr;</div>')
 
     # -------------------------------------------------------------------------
     # Room (1, 2): Voices After Darkness — Testimonials
@@ -1100,121 +1099,122 @@ def render_home_page():
 
     with st.container(key="panel_testi"):
         testimonials_html = """
-            <div id="wf-testimonials-anchor">
-                <h2 class="wf-section-title">Voices After <span>Darkness</span></h2>
-                <p class="wf-section-sub">Scroll or select any review to explore what our regulars say.</p>
-            </div>
+            <div class="wf-room-anim">
+                <div id="wf-testimonials-anchor">
+                    <h2 class="wf-section-title">Voices After <span>Darkness</span></h2>
+                    <p class="wf-section-sub">Swipe inside to browse reviews, or outside to continue.</p>
+                </div>
 
-            <style>
-            #wf-testi-box {
-                position: relative;
-                height: 380px;
-                max-width: 740px;
-                margin: 0 auto;
-                overflow: hidden;
-                border-radius: 24px;
-                background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.08), #141311 78%);
-                border: 1px solid rgba(212, 175, 55, 0.22);
-                perspective: 900px;
-                user-select: none;
-                cursor: ns-resize;
-                touch-action: none;
-            }
-            #wf-testi-box::before,
-            #wf-testi-box::after {
-                content: "";
-                position: absolute;
-                left: 0;
-                right: 0;
-                height: 70px;
-                z-index: 10;
-                pointer-events: none;
-            }
-            #wf-testi-box::before {
-                top: 0;
-                background: linear-gradient(180deg, #121212 10%, transparent 100%);
-            }
-            #wf-testi-box::after {
-                bottom: 0;
-                background: linear-gradient(0deg, #121212 10%, transparent 100%);
-            }
-            .wf-t-card {
-                position: absolute;
-                left: 50%;
-                top: 50%;
-                width: 86%;
-                max-width: 580px;
-                padding: 1.3rem 1.6rem;
-                border-radius: 18px;
-                background: linear-gradient(145deg, #1E1C17, #161512);
-                border: 1px solid rgba(212, 175, 55, 0.2);
-                transition: all 0.72s cubic-bezier(0.22, 1, 0.36, 1);
-                box-sizing: border-box;
-            }
-            .wf-t-card[data-pos="0"] {
-                transform: translate(-50%, -50%) scale(1) rotateX(0deg);
-                filter: blur(0px);
-                opacity: 1;
-                z-index: 5;
-                border-color: #D4AF37;
-                box-shadow: 0 18px 42px rgba(0, 0, 0, 0.65), 0 0 24px rgba(212, 175, 55, 0.18);
-            }
-            .wf-t-card[data-pos="-1"] {
-                transform: translate(-50%, -138%) scale(0.86) rotateX(18deg) skewX(-1.5deg);
-                filter: blur(4px) contrast(0.9);
-                opacity: 0.45;
-                z-index: 3;
-            }
-            .wf-t-card[data-pos="1"] {
-                transform: translate(-50%, 38%) scale(0.86) rotateX(-18deg) skewX(1.5deg);
-                filter: blur(4px) contrast(0.9);
-                opacity: 0.45;
-                z-index: 3;
-            }
-            .wf-t-card[data-pos="-2"] {
-                transform: translate(-50%, -215%) scale(0.74) rotateX(28deg) skewX(-3deg);
-                filter: blur(8px);
-                opacity: 0.14;
-                z-index: 1;
-            }
-            .wf-t-card[data-pos="2"] {
-                transform: translate(-50%, 115%) scale(0.74) rotateX(-28deg) skewX(3deg);
-                filter: blur(8px);
-                opacity: 0.14;
-                z-index: 1;
-            }
-            .wf-t-card[data-pos="hidden"] {
-                transform: translate(-50%, 260%) scale(0.6);
-                opacity: 0;
-                pointer-events: none;
-                z-index: 0;
-            }
-            .wf-t-quote {
-                color: #F5EFE6;
-                font-size: 1rem;
-                line-height: 1.55;
-                font-style: italic;
-                margin-bottom: 0.7rem;
-            }
-            .wf-t-author {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                color: #D4AF37;
-                font-weight: 700;
-                font-size: 0.96rem;
-            }
-            .wf-svg-stars {
-                display: inline-flex;
-                gap: 3px;
-                align-items: center;
-            }
-            </style>
+                <style>
+                #wf-testi-box {
+                    position: relative;
+                    height: 380px;
+                    max-width: 740px;
+                    margin: 0 auto;
+                    overflow: hidden;
+                    border-radius: 24px;
+                    background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.08), #141311 78%);
+                    border: 1px solid rgba(212, 175, 55, 0.22);
+                    perspective: 900px;
+                    user-select: none;
+                    cursor: ns-resize;
+                    touch-action: none;
+                }
+                #wf-testi-box::before,
+                #wf-testi-box::after {
+                    content: "";
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    height: 70px;
+                    z-index: 10;
+                    pointer-events: none;
+                }
+                #wf-testi-box::before {
+                    top: 0;
+                    background: linear-gradient(180deg, #121212 10%, transparent 100%);
+                }
+                #wf-testi-box::after {
+                    bottom: 0;
+                    background: linear-gradient(0deg, #121212 10%, transparent 100%);
+                }
+                .wf-t-card {
+                    position: absolute;
+                    left: 50%;
+                    top: 50%;
+                    width: 86%;
+                    max-width: 580px;
+                    padding: 1.3rem 1.6rem;
+                    border-radius: 18px;
+                    background: linear-gradient(145deg, #1E1C17, #161512);
+                    border: 1px solid rgba(212, 175, 55, 0.2);
+                    transition: all 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+                    box-sizing: border-box;
+                }
+                .wf-t-card[data-pos="0"] {
+                    transform: translate(-50%, -50%) scale(1) rotateX(0deg);
+                    filter: blur(0px);
+                    opacity: 1;
+                    z-index: 5;
+                    border-color: #D4AF37;
+                    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.65), 0 0 24px rgba(212, 175, 55, 0.18);
+                }
+                .wf-t-card[data-pos="-1"] {
+                    transform: translate(-50%, -138%) scale(0.86) rotateX(18deg) skewX(-1.5deg);
+                    filter: blur(4px) contrast(0.9);
+                    opacity: 0.45;
+                    z-index: 3;
+                }
+                .wf-t-card[data-pos="1"] {
+                    transform: translate(-50%, 38%) scale(0.86) rotateX(-18deg) skewX(1.5deg);
+                    filter: blur(4px) contrast(0.9);
+                    opacity: 0.45;
+                    z-index: 3;
+                }
+                .wf-t-card[data-pos="-2"] {
+                    transform: translate(-50%, -215%) scale(0.74) rotateX(28deg) skewX(-3deg);
+                    filter: blur(8px);
+                    opacity: 0.14;
+                    z-index: 1;
+                }
+                .wf-t-card[data-pos="2"] {
+                    transform: translate(-50%, 115%) scale(0.74) rotateX(-28deg) skewX(3deg);
+                    filter: blur(8px);
+                    opacity: 0.14;
+                    z-index: 1;
+                }
+                .wf-t-card[data-pos="hidden"] {
+                    transform: translate(-50%, 260%) scale(0.6);
+                    opacity: 0;
+                    pointer-events: none;
+                    z-index: 0;
+                }
+                .wf-t-quote {
+                    color: #F5EFE6;
+                    font-size: 1rem;
+                    line-height: 1.55;
+                    font-style: italic;
+                    margin-bottom: 0.7rem;
+                }
+                .wf-t-author {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    color: #D4AF37;
+                    font-weight: 700;
+                    font-size: 0.96rem;
+                }
+                .wf-svg-stars {
+                    display: inline-flex;
+                    gap: 3px;
+                    align-items: center;
+                }
+                </style>
 
-            <div id="wf-testi-box">
-                __CARDS_MARKUP__
+                <div id="wf-testi-box">
+                    __CARDS_MARKUP__
+                </div>
             </div>
-            <div class="wf-dir-hint" style="text-align:center; margin-top:1.1rem;">&larr; Scroll Down to Leave Your Review</div>
         """.replace("__CARDS_MARKUP__", cards_markup)
 
         st.html(testimonials_html)
@@ -1226,7 +1226,7 @@ def render_home_page():
         render_review_section(standalone=False)
 
     # -------------------------------------------------------------------------
-    # 2D Spatial Camera & Compass Controller (NO appendChild — clean React lifecycle)
+    # 2D Spatial Camera & Lower-Left Compass HUD Controller
     # -------------------------------------------------------------------------
     st.html(
         """
@@ -1234,14 +1234,14 @@ def render_home_page():
         #wf-spatial-hud {
             position: fixed;
             bottom: 18px;
-            right: 22px;
+            left: 22px;
             z-index: 950;
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(18, 17, 15, 0.82);
+            background: rgba(18, 17, 15, 0.84);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(212, 175, 55, 0.32);
+            border: 1px solid rgba(212, 175, 55, 0.34);
             border-radius: 16px;
             padding: 8px 14px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
@@ -1279,14 +1279,14 @@ def render_home_page():
             text-transform: uppercase;
         }
         .wf-hud-dir {
-            font-size: 0.7rem;
+            font-size: 0.74rem;
             color: #D4AF37;
-            letter-spacing: 0.6px;
+            letter-spacing: 0.8px;
         }
         @media (max-width: 640px) {
             #wf-spatial-hud {
                 bottom: 10px;
-                right: 12px;
+                left: 12px;
                 padding: 6px 10px;
             }
         }
@@ -1296,7 +1296,7 @@ def render_home_page():
             <div class="wf-hud-grid" id="wf-hud-grid"></div>
             <div class="wf-hud-meta">
                 <span class="wf-hud-title" id="wf-hud-title">Quote</span>
-                <span class="wf-hud-dir" id="wf-hud-dir">Scroll &darr;</span>
+                <span class="wf-hud-dir" id="wf-hud-dir">Next &darr;</span>
             </div>
         </div>
 
@@ -1318,12 +1318,13 @@ def render_home_page():
             window.__wfDetachSpatial = detachAllSpatialListeners;
 
             function initSpatialWorld() {
+                // Zero "Scroll" wording on mini-map
                 const rooms = [
-                    { sel: '.st-key-panel_hero',   col: 0, row: 0, title: 'Quote',        dir: 'Scroll \u2193' },
-                    { sel: '.st-key-panel_video',  col: 0, row: 1, title: 'Craft',        dir: 'Scroll \u2193 / \u2192' },
-                    { sel: '.st-key-panel_cta',    col: 1, row: 1, title: 'Signature',    dir: 'Scroll \u2193' },
-                    { sel: '.st-key-panel_testi',  col: 1, row: 2, title: 'Testimonials', dir: 'Scroll \u2190' },
-                    { sel: '.st-key-panel_review', col: 0, row: 2, title: 'Review',       dir: 'Scroll \u2191 Back' }
+                    { sel: '.st-key-panel_hero',   col: 0, row: 0, title: 'Quote',        dir: 'Next \u2193' },
+                    { sel: '.st-key-panel_video',  col: 0, row: 1, title: 'Craft',        dir: '\u2193  |  Next \u2192' },
+                    { sel: '.st-key-panel_cta',    col: 1, row: 1, title: 'Signature',    dir: 'Next \u2193' },
+                    { sel: '.st-key-panel_testi',  col: 1, row: 2, title: 'Testimonials', dir: 'Next \u2190' },
+                    { sel: '.st-key-panel_review', col: 0, row: 2, title: 'Review',       dir: 'Back \u2191' }
                 ];
 
                 const panels = rooms.map(r => document.querySelector(r.sel));
@@ -1345,7 +1346,7 @@ def render_home_page():
                 let isVideoPrimed = false;
                 let animFrame = null;
 
-                // Build 2D Compass HUD
+                // Build Lower-Left 2D Mini-Map HUD
                 hudGrid.innerHTML = '';
                 const hudNodes = [];
                 rooms.forEach((r, idx) => {
@@ -1360,6 +1361,15 @@ def render_home_page():
                     hudGrid.appendChild(node);
                     hudNodes.push(node);
                 });
+
+                function triggerRoomFadeUp(panel) {
+                    const animTargets = panel.querySelectorAll('.wf-room-anim, .wf-blur-in');
+                    animTargets.forEach((el) => {
+                        el.classList.remove('wf-blur-in');
+                        void el.offsetWidth;
+                        el.classList.add('wf-blur-in');
+                    });
+                }
 
                 function applySpatialCamera(instant = false) {
                     const target = rooms[activeRoom];
@@ -1392,6 +1402,7 @@ def render_home_page():
                     activeRoom = nextRoom;
                     window.__wfActiveRoom = activeRoom;
                     applySpatialCamera(false);
+                    triggerRoomFadeUp(panels[activeRoom]);
                     setTimeout(() => { isBusy = false; }, 980);
                 }
 
@@ -1568,7 +1579,7 @@ def render_home_page():
                     setTimeout(() => { isBusy = false; }, 2200);
                 }
 
-                // Testimonials Carousel Controller
+                // Testimonials Carousel Controller (Locked inside container — never scrolls page)
                 const testiBox = document.getElementById('wf-testi-box');
                 const cards = testiBox ? Array.from(testiBox.querySelectorAll('.wf-t-card')) : [];
                 let activeTesti = 0;
@@ -1641,16 +1652,13 @@ def render_home_page():
                     }
 
                     if (activeRoom === 3) {
+                        // Inside Testimonials container: ONLY scroll testimonials, NEVER change page
                         if (testiBox && testiBox.contains(targetEl) && cards.length > 0) {
-                            if (dir > 0 && activeTesti === cards.length - 1) {
-                                goToRoom(4);
-                            } else if (dir < 0 && activeTesti === 0) {
-                                goToRoom(2);
-                            } else if (!boxLock) {
+                            if (!boxLock) {
                                 boxLock = true;
                                 stepTesti(dir);
                                 resetTestiAuto(5500);
-                                setTimeout(() => { boxLock = false; }, 360);
+                                setTimeout(() => { boxLock = false; }, 340);
                             }
                             return;
                         }
@@ -1785,10 +1793,95 @@ current_page = st.navigation(
 
 
 # -----------------------------------------------------------------------------
-# Top Toolbar
+# Top Toolbar + Popover/Dialog Fade-Out Ghost Observer
 # -----------------------------------------------------------------------------
 def render_navbar(active_page):
     cart_items, total_qty, grand_total = get_cart_summary()
+
+    # Global MutationObserver for smooth fade-out-blur-out of Basket Popover & Details Dialog
+    st.html(
+        """
+        <script>
+        (function() {
+            if (window.__wfOverlayObserverAttached) return;
+            window.__wfOverlayObserverAttached = true;
+
+            let lastPopRect = null;
+            let lastDlgRect = null;
+
+            function trackLiveRects() {
+                const pop = document.querySelector('[data-testid="stPopoverBody"]');
+                if (pop) {
+                    const r = pop.getBoundingClientRect();
+                    if (r.width > 10 && r.height > 10) lastPopRect = r;
+                }
+                const dlg = document.querySelector('[role="dialog"]');
+                if (dlg) {
+                    const r = dlg.getBoundingClientRect();
+                    if (r.width > 10 && r.height > 10) lastDlgRect = r;
+                }
+            }
+
+            setInterval(trackLiveRects, 180);
+            window.addEventListener('mousedown', trackLiveRects, true);
+            window.addEventListener('touchstart', trackLiveRects, { passive: true, capture: true });
+
+            function findMatch(node, selector) {
+                if (!node || node.nodeType !== 1) return null;
+                if (node.matches && node.matches(selector)) return node;
+                return node.querySelector ? node.querySelector(selector) : null;
+            }
+
+            const observer = new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                    for (const added of m.addedNodes) {
+                        if (findMatch(added, '[data-testid="stPopoverBody"]')) {
+                            requestAnimationFrame(trackLiveRects);
+                        }
+                        if (findMatch(added, '[role="dialog"]')) {
+                            requestAnimationFrame(trackLiveRects);
+                        }
+                    }
+
+                    for (const removed of m.removedNodes) {
+                        const remPop = findMatch(removed, '[data-testid="stPopoverBody"]');
+                        if (remPop && lastPopRect) {
+                            const ghost = remPop.cloneNode(true);
+                            ghost.removeAttribute('data-testid');
+                            ghost.className = 'wf-ghost-popover-out';
+                            ghost.style.left = lastPopRect.left + 'px';
+                            ghost.style.top = lastPopRect.top + 'px';
+                            ghost.style.width = lastPopRect.width + 'px';
+                            ghost.style.height = lastPopRect.height + 'px';
+                            document.body.appendChild(ghost);
+                            lastPopRect = null;
+                            setTimeout(() => ghost.remove(), 350);
+                        }
+
+                        const remDlg = findMatch(removed, '[role="dialog"]');
+                        if (remDlg && lastDlgRect) {
+                            const ghost = remDlg.cloneNode(true);
+                            ghost.removeAttribute('role');
+                            ghost.removeAttribute('data-testid');
+                            ghost.className = 'wf-ghost-dialog-out';
+                            ghost.style.left = lastDlgRect.left + 'px';
+                            ghost.style.top = lastDlgRect.top + 'px';
+                            ghost.style.width = lastDlgRect.width + 'px';
+                            ghost.style.height = lastDlgRect.height + 'px';
+                            document.body.appendChild(ghost);
+                            lastDlgRect = null;
+                            setTimeout(() => ghost.remove(), 360);
+                        }
+                    }
+                }
+            });
+
+            observer.observe(document.body, { childList: true, subtree: true });
+        })();
+        </script>
+        """,
+        unsafe_allow_javascript=True,
+    )
 
     with st.container(key="navbar_wrap"):
         col_brand, col_home, col_menu, col_review, col_bug, col_bag = st.columns(
