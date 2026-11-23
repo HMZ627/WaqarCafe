@@ -327,13 +327,8 @@ div.stFormSubmitButton > button:hover,
 @keyframes wfBagPopOut {
     0% {
         opacity: 0;
-        transform: scale(0.72) translate(14px, -16px);
+        transform: scale(0.76) translate(12px, -14px);
         filter: blur(12px);
-    }
-    70% {
-        opacity: 1;
-        transform: scale(1.02) translate(0, 2px);
-        filter: blur(0px);
     }
     100% {
         opacity: 1;
@@ -350,13 +345,12 @@ div.stFormSubmitButton > button:hover,
     }
     100% {
         opacity: 0;
-        transform: scale(0.72) translate(14px, -16px);
+        transform: scale(0.76) translate(12px, -14px);
         filter: blur(14px);
     }
 }
 
-div[data-testid="stPopoverBody"],
-.wf-ghost-popover-out {
+div[data-testid="stPopoverBody"] {
     z-index: 50000 !important;
     min-width: min(350px, 90vw) !important;
     background: linear-gradient(160deg, #1E1C18, #141311) !important;
@@ -365,19 +359,24 @@ div[data-testid="stPopoverBody"],
     color: var(--wf-cream) !important;
     box-shadow: 0 22px 55px rgba(0, 0, 0, 0.78) !important;
     transform-origin: top right !important;
-    padding: 1rem !important;
-    box-sizing: border-box !important;
+    will-change: transform, opacity, filter !important;
 }
 
-div[data-testid="stPopoverBody"] {
-    animation: wfBagPopOut 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+div[data-testid="stPopoverBody"]:not([data-wf-ghost]) {
+    animation: wfBagPopOut 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
 .wf-ghost-popover-out {
     position: fixed !important;
     pointer-events: none !important;
     margin: 0 !important;
-    animation: wfBagPopClose 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    overflow: hidden !important;
+    animation: wfBagPopClose 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+[data-wf-ghost="1"] * {
+    transition: none !important;
+    animation: none !important;
 }
 
 div[data-testid="stPopoverBody"] div.stButton > button {
@@ -429,8 +428,7 @@ div[data-testid="stPopoverBody"] .st-key-basket_order_btn button {
     }
 }
 
-div[role="dialog"],
-.wf-ghost-dialog-out {
+div[role="dialog"] {
     z-index: 60000 !important;
     background: linear-gradient(165deg, #1C1A16 0%, #12110F 100%) !important;
     border: 1px solid rgba(212, 175, 55, 0.42) !important;
@@ -438,9 +436,10 @@ div[role="dialog"],
     box-shadow: 0 30px 90px rgba(0, 0, 0, 0.88) !important;
     color: var(--wf-cream) !important;
     box-sizing: border-box !important;
+    will-change: transform, opacity, filter !important;
 }
 
-div[role="dialog"] {
+div[role="dialog"]:not([data-wf-ghost]) {
     animation: wfDialogFadeIn 0.44s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
@@ -449,7 +448,7 @@ div[role="dialog"] {
     pointer-events: none !important;
     margin: 0 !important;
     overflow: hidden !important;
-    animation: wfDialogFadeOut 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    animation: wfDialogFadeOut 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
 /* Section Headers */
