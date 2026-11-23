@@ -28,9 +28,15 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 }
 
 .block-container {
-    padding-top: 0.9rem !important;
+    padding-top: 6.8rem !important;
     padding-bottom: 3.5rem !important;
     max-width: 1240px !important;
+}
+
+@media (max-width: 820px) {
+    .block-container {
+        padding-top: 8.2rem !important;
+    }
 }
 
 /* Fade-In-Blur-In Reveal */
@@ -61,7 +67,22 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     animation: wfBlurReveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Upper-Left Brand & Larger Logo */
+/* ============================================================================
+   Fixed Top Toolbar (Stays accessible across all 2D directions & pages)
+   ============================================================================ */
+.st-key-navbar_wrap {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 600 !important;
+    background: rgba(16, 15, 13, 0.86) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+    padding: 0.55rem max(1.2rem, calc((100vw - 1240px) / 2)) !important;
+}
+
 .wf-brand-wrap {
     display: flex;
     align-items: center;
@@ -70,7 +91,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 }
 
 .wf-brand-logo {
-    height: clamp(56px, 6.2vw, 82px);
+    height: clamp(50px, 5.2vw, 72px);
     width: auto;
     flex-shrink: 0;
     object-fit: contain;
@@ -80,7 +101,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 
 .wf-brand-name {
     font-family: 'Lobster', cursive !important;
-    font-size: clamp(1.5rem, 2.3vw, 2.25rem) !important;
+    font-size: clamp(1.45rem, 2.2vw, 2.15rem) !important;
     color: var(--wf-gold) !important;
     letter-spacing: 0.5px;
     line-height: 1.05;
@@ -88,30 +109,32 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     white-space: nowrap;
 }
 
-/* Responsive Navbar Row */
 .st-key-navbar_wrap [data-testid="stHorizontalBlock"] {
     align-items: center !important;
-    gap: 0.65rem !important;
+    gap: 0.6rem !important;
 }
 
 @media (max-width: 820px) {
+    .st-key-navbar_wrap {
+        padding: 0.5rem 0.9rem !important;
+    }
     .st-key-navbar_wrap [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: wrap !important;
         align-items: center !important;
-        gap: 0.5rem !important;
+        gap: 0.45rem !important;
     }
     .st-key-navbar_wrap [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(1) {
-        flex: 1 1 calc(100% - 72px) !important;
+        flex: 1 1 calc(100% - 70px) !important;
         width: auto !important;
         min-width: 0 !important;
         order: 1 !important;
     }
     .st-key-navbar_wrap [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(6) {
-        flex: 0 0 56px !important;
-        width: 56px !important;
-        min-width: 56px !important;
+        flex: 0 0 54px !important;
+        width: 54px !important;
+        min-width: 54px !important;
         order: 2 !important;
     }
     .st-key-navbar_wrap [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(2),
@@ -124,8 +147,126 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
         order: 3 !important;
     }
     .st-key-navbar_wrap div.stButton > button {
-        padding: 0.42rem 0.8rem !important;
-        font-size: 0.85rem !important;
+        padding: 0.38rem 0.72rem !important;
+        font-size: 0.82rem !important;
+    }
+}
+
+/* ============================================================================
+   2D Multi-Directional Spatial Viewport & Camera World (Home Page)
+   ============================================================================ */
+.st-key-home_viewport {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    z-index: 10 !important;
+    background: var(--wf-bg) !important;
+}
+
+.st-key-home_world {
+    position: relative !important;
+    width: 300vw !important;
+    height: 300dvh !important;
+    transform: translate3d(-100vw, 0dvh, 0);
+    transition: transform 0.95s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    will-change: transform;
+}
+
+/* Position the 5 Stations in 2D Space:
+   Station 0 (Hero):         (100vw,   0dvh)
+   Station 1 (Burger):       (100vw, 100dvh)  [DOWN]
+   Station 2 (Order Spot):   (200vw, 100dvh)  [RIGHT]
+   Station 3 (Testimonials): (200vw, 200dvh)  [DOWN]
+   Station 4 (Review):       (100vw, 200dvh)  [LEFT]
+*/
+.wf-2d-station {
+    position: absolute !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+.st-key-sec_hero,
+[data-testid="stElementContainer"]:has(> .st-key-sec_hero) {
+    position: absolute !important;
+    left: 100vw !important;
+    top: 0dvh !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    padding-top: 86px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background: radial-gradient(circle at 50% 42%, rgba(212, 175, 55, 0.08), #121212 68%) !important;
+}
+
+.st-key-sec_burger,
+[data-testid="stElementContainer"]:has(> .st-key-sec_burger) {
+    position: absolute !important;
+    left: 100vw !important;
+    top: 100dvh !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    padding: 0 !important;
+}
+
+.st-key-sec_order,
+[data-testid="stElementContainer"]:has(> .st-key-sec_order) {
+    position: absolute !important;
+    left: 200vw !important;
+    top: 100dvh !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    padding: 94px 4vw 24px 4vw !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background: radial-gradient(circle at 55% 45%, rgba(212, 175, 55, 0.11), #121212 70%) !important;
+    overflow-y: auto !important;
+}
+
+.st-key-sec_testimonials,
+[data-testid="stElementContainer"]:has(> .st-key-sec_testimonials) {
+    position: absolute !important;
+    left: 200vw !important;
+    top: 200dvh !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    padding: 92px 4vw 24px 4vw !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background: radial-gradient(circle at 45% 50%, rgba(212, 175, 55, 0.09), #121212 72%) !important;
+}
+
+.st-key-sec_review,
+[data-testid="stElementContainer"]:has(> .st-key-sec_review) {
+    position: absolute !important;
+    left: 100vw !important;
+    top: 200dvh !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    padding: 92px 4vw 24px 4vw !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background: radial-gradient(circle at 50% 45%, rgba(212, 175, 55, 0.08), #121212 72%) !important;
+    overflow-y: auto !important;
+}
+
+@media (max-width: 820px) {
+    .st-key-sec_hero, [data-testid="stElementContainer"]:has(> .st-key-sec_hero),
+    .st-key-sec_order, [data-testid="stElementContainer"]:has(> .st-key-sec_order),
+    .st-key-sec_testimonials, [data-testid="stElementContainer"]:has(> .st-key-sec_testimonials),
+    .st-key-sec_review, [data-testid="stElementContainer"]:has(> .st-key-sec_review) {
+        padding-top: 112px !important;
     }
 }
 
@@ -253,6 +394,11 @@ div.stFormSubmitButton > button:hover,
     }
 }
 
+div[data-baseweb="popover"],
+div[data-testid="stPopoverBody"] {
+    z-index: 2500 !important;
+}
+
 div[data-testid="stPopoverBody"] {
     min-width: min(350px, 90vw) !important;
     background: linear-gradient(160deg, #1E1C18, #141311) !important;
@@ -298,6 +444,10 @@ div[data-testid="stPopoverBody"] .st-key-basket_order_btn button {
     }
 }
 
+div[data-testid="stDialog"], div[role="dialog"] {
+    z-index: 3500 !important;
+}
+
 div[role="dialog"] {
     background: linear-gradient(165deg, #1C1A16 0%, #12110F 100%) !important;
     border: 1px solid rgba(212, 175, 55, 0.42) !important;
@@ -306,20 +456,13 @@ div[role="dialog"] {
     animation: wfDialogFadeUp 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
-/* Divider */
-.wf-nav-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.45), transparent);
-    margin: 0.55rem 0 1.2rem 0;
-}
-
 /* Section Headers */
 .wf-section-title {
     font-family: 'Playfair Display', serif;
-    font-size: clamp(1.8rem, 3.2vw, 2.6rem);
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
     color: var(--wf-cream);
     text-align: center;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.25rem;
 }
 
 .wf-section-title span {
@@ -331,8 +474,8 @@ div[role="dialog"] {
 .wf-section-sub {
     text-align: center;
     color: var(--wf-cream-muted);
-    font-size: 0.98rem;
-    margin-bottom: 1.6rem;
+    font-size: 0.95rem;
+    margin-bottom: 1.1rem;
 }
 
 /* Menu Cards */
