@@ -596,7 +596,7 @@ def render_home_page():
                 const vid = document.getElementById('wf-intro-video');
                 const skipBtn = document.getElementById('wf-intro-skip');
                 const navBar = document.querySelector('.st-key-navbar_wrap');
-                const heroPanel = document.querySelector('.st-key-panel_hero');
+                const heroInner = document.querySelector('.wf-hero');
 
                 if (!overlay || !vid) {
                     if (tries++ < 45) requestAnimationFrame(initIntro);
@@ -606,12 +606,12 @@ def render_home_page():
                 if (window.__wfIntroDone) {
                     overlay.classList.add('wf-removed');
                     if (navBar) navBar.classList.remove('wf-page-hidden');
-                    if (heroPanel) heroPanel.classList.remove('wf-page-hidden');
+                    if (heroInner) heroInner.classList.remove('wf-page-hidden');
                     return;
                 }
 
                 if (navBar) navBar.classList.add('wf-page-hidden');
-                if (heroPanel) heroPanel.classList.add('wf-page-hidden');
+                if (heroInner) heroInner.classList.add('wf-page-hidden');
 
                 let finished = false;
 
@@ -627,10 +627,10 @@ def render_home_page():
                         }
                     }, 980);
 
-                    // 1 second after intro finishes fading out, blur-in navbar & hero
+                    // 1 second after intro finishes fading out, blur-in navbar & inner hero quote
                     setTimeout(() => {
                         const nav = document.querySelector('.st-key-navbar_wrap');
-                        const hero = document.querySelector('.st-key-panel_hero');
+                        const hero = document.querySelector('.wf-hero');
                         [nav, hero].forEach((el) => {
                             if (!el) return;
                             el.classList.remove('wf-page-hidden');
@@ -1372,7 +1372,7 @@ def render_home_page():
                             panel.style.transition = 'none';
                         }
                         panel.style.transform = `translate3d(${dx}vw, ${dy}dvh, 0)`;
-                        panel.style.opacity = (i === activeRoom) ? '1' : '0.25';
+                        panel.style.opacity = (i === activeRoom) ? '1' : '0';
                         panel.style.pointerEvents = (i === activeRoom) ? 'auto' : 'none';
 
                         if (instant) {
@@ -1676,6 +1676,13 @@ def render_home_page():
                 }
 
                 detachAllSpatialListeners();
+
+                const navButtons = document.querySelectorAll('.st-key-navbar_wrap button');
+                navButtons.forEach(btn => {
+                    if (!btn.closest('.st-key-bag_popover')) {
+                        btn.addEventListener('click', detachAllSpatialListeners, { once: true });
+                    }
+                });
 
                 window.__wfStageWheelHandler = function(e) {
                     if (!document.body.contains(stage)) {
