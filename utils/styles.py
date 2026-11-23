@@ -39,17 +39,17 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     }
 }
 
-/* Fade-In-Blur-In Reveal (applied to content elements, never stAppViewContainer) */
+/* Combined Fade-In-Upwards + Fade-In-Blur-In Reveal */
 @keyframes wfBlurReveal {
     0% {
         opacity: 0;
-        filter: blur(22px);
-        transform: scale(1.015);
+        filter: blur(20px);
+        transform: translateY(34px) scale(0.985);
     }
     99% {
         opacity: 1;
         filter: blur(0px);
-        transform: scale(1);
+        transform: translateY(0) scale(1);
     }
     100% {
         opacity: 1;
@@ -65,7 +65,12 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 }
 
 .wf-blur-in {
-    animation: wfBlurReveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: wfBlurReveal 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Apply Fade-In-Upwards + Blur-In to all Streamlit bordered form containers across pages */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    animation: wfBlurReveal 1.05s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* ============================================================================
@@ -318,12 +323,14 @@ div.stFormSubmitButton > button:hover,
     pointer-events: none !important;
 }
 
-/* Pop-Out Animation for Basket Popover & '+'/'-' Fixes */
-@keyframes wfBagPopOut {
+/* ============================================================================
+   Basket Dialogue: Fade-In-Blur-In Appear & Fade-Out-Blur-Out Disappear
+   ============================================================================ */
+@keyframes wfBagFadeBlurIn {
     0% {
         opacity: 0;
-        transform: scale(0.68) translate(16px, -18px);
-        filter: blur(8px);
+        transform: scale(0.72) translate(16px, -18px);
+        filter: blur(16px);
     }
     70% {
         opacity: 1;
@@ -337,6 +344,19 @@ div.stFormSubmitButton > button:hover,
     }
 }
 
+@keyframes wfBagFadeBlurOut {
+    0% {
+        opacity: 1;
+        transform: scale(1) translate(0, 0);
+        filter: blur(0px);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.74) translate(16px, -18px);
+        filter: blur(16px);
+    }
+}
+
 div[data-testid="stPopoverBody"] {
     z-index: 50000 !important;
     min-width: min(350px, 90vw) !important;
@@ -346,7 +366,22 @@ div[data-testid="stPopoverBody"] {
     color: var(--wf-cream) !important;
     box-shadow: 0 22px 55px rgba(0, 0, 0, 0.78) !important;
     transform-origin: top right !important;
-    animation: wfBagPopOut 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    animation: wfBagFadeBlurIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+.wf-bag-exit-ghost {
+    position: fixed !important;
+    z-index: 50001 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+    background: linear-gradient(160deg, #1E1C18, #141311) !important;
+    border: 1px solid rgba(212, 175, 55, 0.42) !important;
+    border-radius: 18px !important;
+    color: var(--wf-cream) !important;
+    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.78) !important;
+    transform-origin: top right !important;
+    overflow: hidden !important;
+    animation: wfBagFadeBlurOut 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
 div[data-testid="stPopoverBody"] div.stButton > button {
@@ -369,17 +404,32 @@ div[data-testid="stPopoverBody"] .st-key-basket_order_btn button {
     font-size: 0.98rem !important;
 }
 
-/* Fade-In-Upwards Animation for Checkout & Confirmation Dialogs */
-@keyframes wfDialogFadeUp {
+/* ============================================================================
+   Details Filling & Confirmation Dialogs: Smooth Fade-In & Fade-Out
+   ============================================================================ */
+@keyframes wfDialogFadeIn {
     0% {
         opacity: 0;
-        transform: translateY(42px) scale(0.97);
-        filter: blur(10px);
+        transform: translateY(34px) scale(0.97);
+        filter: blur(8px);
     }
     100% {
         opacity: 1;
         transform: translateY(0) scale(1);
         filter: blur(0px);
+    }
+}
+
+@keyframes wfDialogFadeOut {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(26px) scale(0.97);
+        filter: blur(8px);
     }
 }
 
@@ -389,7 +439,21 @@ div[role="dialog"] {
     border: 1px solid rgba(212, 175, 55, 0.42) !important;
     border-radius: 22px !important;
     box-shadow: 0 30px 90px rgba(0, 0, 0, 0.88) !important;
-    animation: wfDialogFadeUp 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    animation: wfDialogFadeIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+.wf-dialog-exit-ghost {
+    position: fixed !important;
+    z-index: 60001 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+    background: linear-gradient(165deg, #1C1A16 0%, #12110F 100%) !important;
+    border: 1px solid rgba(212, 175, 55, 0.42) !important;
+    border-radius: 22px !important;
+    color: var(--wf-cream) !important;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.88) !important;
+    overflow: hidden !important;
+    animation: wfDialogFadeOut 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
 /* Section Headers */
