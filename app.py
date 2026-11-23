@@ -129,7 +129,7 @@ def show_checkout_dialog():
         """
         <script>
         (function() {
-            const popBodies = document.querySelectorAll('[data-testid="stPopoverBody"]');
+            const popBodies = document.querySelectorAll('[data-testid="stPopoverBody"]:not([data-wf-ghost])');
             if (popBodies.length > 0) {
                 document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
                 const bagBtn = document.querySelector('.st-key-bag_popover button');
@@ -1318,7 +1318,6 @@ def render_home_page():
             window.__wfDetachSpatial = detachAllSpatialListeners;
 
             function initSpatialWorld() {
-                // Zero "Scroll" wording on mini-map
                 const rooms = [
                     { sel: '.st-key-panel_hero',   col: 0, row: 0, title: 'Quote',        dir: 'Next \u2193' },
                     { sel: '.st-key-panel_video',  col: 0, row: 1, title: 'Craft',        dir: '\u2193  |  Next \u2192' },
@@ -1652,7 +1651,6 @@ def render_home_page():
                     }
 
                     if (activeRoom === 3) {
-                        // Inside Testimonials container: ONLY scroll testimonials, NEVER change page
                         if (testiBox && testiBox.contains(targetEl) && cards.length > 0) {
                             if (!boxLock) {
                                 boxLock = true;
@@ -1677,8 +1675,8 @@ def render_home_page():
 
                 function isInteractiveOverlayOpen(target) {
                     return Boolean(
-                        document.querySelector('[role="dialog"]') ||
-                        document.querySelector('[data-testid="stPopoverBody"]') ||
+                        document.querySelector('[role="dialog"]:not([data-wf-ghost])') ||
+                        document.querySelector('[data-testid="stPopoverBody"]:not([data-wf-ghost])') ||
                         (target && target.closest && target.closest('textarea, input, button, [role="dialog"], [data-testid="stPopoverBody"], .st-key-navbar_wrap'))
                     );
                 }
@@ -1798,7 +1796,7 @@ current_page = st.navigation(
 def render_navbar(active_page):
     cart_items, total_qty, grand_total = get_cart_summary()
 
-    # Global MutationObserver for smooth fade-out-blur-out of Basket Popover & Details Dialog
+    # Smooth glitch-free fade-out-blur-out for Basket Popover & Details Dialog
     st.html(
         """
         <script>
@@ -1808,23 +1806,82 @@ def render_navbar(active_page):
 
             let lastPopRect = null;
             let lastDlgRect = null;
+            let popGhostActive = false;
+            let dlgGhostActive = false;
 
-            function trackLiveRects() {
-                const pop = document.querySelector('[data-testid="stPopoverBody"]');
-                if (pop) {
-                    const r = pop.getBoundingClientRect();
-                    if (r.width > 10 && r.height > 10) lastPopRect = r;
-                }
-                const dlg = document.querySelector('[role="dialog"]');
-                if (dlg) {
-                    const r = dlg.getBoundingClientRect();
-                    if (r.width > 10 && r.height > 10) lastDlgRect = r;
-                }
+            function spawnPopoverGhost(popNode) {
+                if (!popNode || popGhostActive) return;
+                const r = popNode.getBoundingClientRect();
+                if (r.width < 10 || r.height < 10) return;
+
+                popGhostActive = true;
+                const ghost = popNode.cloneNode(true);
+                ghost.setAttribute('data-wf-ghost', '1');
+                ghost.classList.add('wf-ghost-popover-out');
+                ghost.style.left = r.left + 'px';
+                ghost.style.top = r.top + 'px';
+                ghost.style.width = r.width + 'px';
+                ghost.style.height = r.height + 'px';
+                document.body.appendChild(ghost);
+
+                popNode.style.opacity = '0';
+
+                setTimeout(() => {
+                    ghost.remove();
+                    popGhostActive = false;
+                }, 320);
             }
 
-            setInterval(trackLiveRects, 180);
-            window.addEventListener('mousedown', trackLiveRects, true);
-            window.addEventListener('touchstart', trackLiveRects, { passive: true, capture: true });
+            function spawnDialogGhost(dlgNode, rect) {
+                const r = rect || (dlgNode ? dlgNode.getBoundingClientRect() : null);
+                if (!dlgNode || !r || r.width < 10 || r.height < 10 || dlgGhostActive) return;
+
+                dlgGhostActive = true;
+                const ghost = dlgNode.cloneNode(true);
+                ghost.setAttribute('data-wf-ghost', '1');
+                ghost.classList.add('wf-ghost-dialog-out');
+                ghost.style.left = r.left + 'px';
+                ghost.style.top = r.top + 'px';
+                ghost.style.width = r.width + 'px';
+                ghost.style.height = r.height + 'px';
+                document.body.appendChild(ghost);
+
+                dlgNode.style.opacity = '0';
+
+                setTimeout(() => {
+                    ghost.remove();
+                    dlgGhostActive = false;
+                }, 340);
+            }
+
+            window.addEventListener('pointerdown', (e) => {
+                const pop = document.querySelector('[data-testid="stPopoverBody"]:not([data-wf-ghost])');
+                if (pop) {
+                    lastPopRect = pop.getBoundingClientRect();
+                    const clickedInsidePop = pop.contains(e.target);
+                    const clickedOrderBtn = e.target.closest && e.target.closest('.st-key-basket_order_btn');
+                    if (!clickedInsidePop || clickedOrderBtn) {
+                        spawnPopoverGhost(pop);
+                    }
+                }
+
+                const dlg = document.querySelector('[role="dialog"]:not([data-wf-ghost])');
+                if (dlg) {
+                    lastDlgRect = dlg.getBoundingClientRect();
+                    const clickedCloseBtn = e.target.closest && e.target.closest('[role="dialog"] button[aria-label="Close"]');
+                    if (!dlg.contains(e.target) || clickedCloseBtn) {
+                        spawnDialogGhost(dlg, lastDlgRect);
+                    }
+                }
+            }, true);
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                const pop = document.querySelector('[data-testid="stPopoverBody"]:not([data-wf-ghost])');
+                if (pop) spawnPopoverGhost(pop);
+                const dlg = document.querySelector('[role="dialog"]:not([data-wf-ghost])');
+                if (dlg) spawnDialogGhost(dlg, dlg.getBoundingClientRect());
+            }, true);
 
             function findMatch(node, selector) {
                 if (!node || node.nodeType !== 1) return null;
@@ -1833,44 +1890,43 @@ def render_navbar(active_page):
             }
 
             const observer = new MutationObserver((mutations) => {
-                for (const m of mutations) {
-                    for (const added of m.addedNodes) {
-                        if (findMatch(added, '[data-testid="stPopoverBody"]')) {
-                            requestAnimationFrame(trackLiveRects);
-                        }
-                        if (findMatch(added, '[role="dialog"]')) {
-                            requestAnimationFrame(trackLiveRects);
-                        }
-                    }
+                const livePop = document.querySelector('[data-testid="stPopoverBody"]:not([data-wf-ghost])');
+                if (livePop) lastPopRect = livePop.getBoundingClientRect();
+                const liveDlg = document.querySelector('[role="dialog"]:not([data-wf-ghost])');
+                if (liveDlg) lastDlgRect = liveDlg.getBoundingClientRect();
 
+                for (const m of mutations) {
                     for (const removed of m.removedNodes) {
+                        if (removed.getAttribute && removed.getAttribute('data-wf-ghost')) continue;
+
                         const remPop = findMatch(removed, '[data-testid="stPopoverBody"]');
-                        if (remPop && lastPopRect) {
+                        if (remPop && !popGhostActive && lastPopRect) {
+                            popGhostActive = true;
                             const ghost = remPop.cloneNode(true);
-                            ghost.removeAttribute('data-testid');
-                            ghost.className = 'wf-ghost-popover-out';
+                            ghost.setAttribute('data-wf-ghost', '1');
+                            ghost.classList.add('wf-ghost-popover-out');
                             ghost.style.left = lastPopRect.left + 'px';
                             ghost.style.top = lastPopRect.top + 'px';
                             ghost.style.width = lastPopRect.width + 'px';
                             ghost.style.height = lastPopRect.height + 'px';
                             document.body.appendChild(ghost);
                             lastPopRect = null;
-                            setTimeout(() => ghost.remove(), 350);
+                            setTimeout(() => { ghost.remove(); popGhostActive = false; }, 320);
                         }
 
                         const remDlg = findMatch(removed, '[role="dialog"]');
-                        if (remDlg && lastDlgRect) {
+                        if (remDlg && !dlgGhostActive && lastDlgRect) {
+                            dlgGhostActive = true;
                             const ghost = remDlg.cloneNode(true);
-                            ghost.removeAttribute('role');
-                            ghost.removeAttribute('data-testid');
-                            ghost.className = 'wf-ghost-dialog-out';
+                            ghost.setAttribute('data-wf-ghost', '1');
+                            ghost.classList.add('wf-ghost-dialog-out');
                             ghost.style.left = lastDlgRect.left + 'px';
                             ghost.style.top = lastDlgRect.top + 'px';
                             ghost.style.width = lastDlgRect.width + 'px';
                             ghost.style.height = lastDlgRect.height + 'px';
                             document.body.appendChild(ghost);
                             lastDlgRect = null;
-                            setTimeout(() => ghost.remove(), 360);
+                            setTimeout(() => { ghost.remove(); dlgGhostActive = false; }, 340);
                         }
                     }
                 }
